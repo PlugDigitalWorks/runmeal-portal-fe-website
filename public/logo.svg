@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-utensils-crossed">
+  <circle cx="50" cy="50" r="45" fill="#f97316" stroke="none" />
+  <path d="M40 30v40m-10-25h10" stroke="white" stroke-width="4" />
+  <path d="M60 30v40m10-25h-10" stroke="white" stroke-width="4" />
+  <path d="M30 70s0-10 10-10 10 10 10 10 0 10-10 10-10-10-10-10z" fill="white" stroke="none" />
+  <path d="M50 30c0 0 0 20 10 20s10-20 10-20" stroke="white" stroke-width="4" />
+</svg>
