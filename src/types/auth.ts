@@ -29,9 +29,20 @@ export interface RefreshResponse {
   sid?: string;
 }
 
+export type AuthClient = 'user' | 'manager';
+export type AuthMethod = 'password' | 'otp' | 'google';
+
 export interface LoginDto {
-  email: string;
-  password: string;
+  email?: string;
+  password?: string;
+  method?: AuthMethod;
+  client?: AuthClient;
+  recaptchaToken?: string;
+}
+
+export interface GoogleLoginStartResponse {
+  method: 'google';
+  redirectUrl: string;
 }
 
 

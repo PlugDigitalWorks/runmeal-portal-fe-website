@@ -8,6 +8,7 @@ const API_URL =
 
 export const api = axios.create({
   baseURL: API_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
     'x-auth-mode': 'body', // Request tokens in body
@@ -16,6 +17,10 @@ export const api = axios.create({
 
 api.interceptors.request.use(async (config) => {
   let token: string | undefined;
+
+  if (config.url?.includes('/auth/refresh') || config.url?.includes('/auth/login')) {
+    return config;
+  }
 
   if (typeof window === 'undefined') {
     const { cookies } = await import('next/headers');
@@ -63,7 +68,10 @@ api.interceptors.response.use(
 
     if (error.response?.status === 401 && !originalRequest._retry) {
 
-      if (originalRequest.url?.includes('/auth/login')) {
+      if (
+        originalRequest.url?.includes('/auth/login') ||
+        originalRequest.url?.includes('/auth/refresh')
+      ) {
         return Promise.reject(error);
       }
 

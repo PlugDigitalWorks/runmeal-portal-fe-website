@@ -1,6 +1,45 @@
 import { api } from '@/lib/axios';
-import { LoginDto, RegisterDto, AuthResponse, User, ApiResponse, ResetPasswordDto } from '@/types/auth';
+import {
+  LoginDto,
+  RegisterDto,
+  AuthResponse,
+  User,
+  ApiResponse,
+  ResetPasswordDto,
+  RefreshResponse,
+  GoogleLoginStartResponse,
+} from '@/types/auth';
+import axios from 'axios';
 import Cookies from 'js-cookie';
+
+const AUTH_CLIENT = 'user';
+
+const getDirectApiUrl = () =>
+  (process.env.NEXT_PUBLIC_API_URL || '/api').replace(/\/+$/, '');
+
+const persistAuthResponse = (data: AuthResponse) => {
+  const { accessToken, refreshToken, sid, user } = data;
+
+  Cookies.set('accessToken', accessToken);
+  if (refreshToken) Cookies.set('refreshToken', refreshToken);
+  if (sid) Cookies.set('sid', sid);
+  
+  if (user) {
+    Cookies.set('user', JSON.stringify(user));
+  } else {
+    console.error('No user object found in login response');
+  }
+};
+
+const persistRefreshResponse = (data: RefreshResponse) => {
+  Cookies.set('accessToken', data.accessToken);
+  if (data.refreshToken) Cookies.set('refreshToken', data.refreshToken);
+  if (data.sid) Cookies.set('sid', data.sid);
+};
+
+const persistUser = (user: User) => {
+  Cookies.set('user', JSON.stringify(user));
+};
 
 export const authService = {
   async register(data: RegisterDto) {
@@ -26,21 +65,43 @@ export const authService = {
   },
 
   async login(data: LoginDto) {
-    const response = await api.post<ApiResponse<AuthResponse>>('/auth/login', data);
+    const response = await api.post<ApiResponse<AuthResponse>>('/auth/login', {
+      ...data,
+      method: data.method || 'password',
+      client: data.client || AUTH_CLIENT,
+    });
 
-    const { accessToken, refreshToken, sid, user } = response.data.data;
+    persistAuthResponse(response.data.data);
 
-    // We use manual cookie management because we asked for tokens in body
-    Cookies.set('accessToken', accessToken);
-    if (refreshToken) Cookies.set('refreshToken', refreshToken);
-    if (sid) Cookies.set('sid', sid);
-    
-    if (user) {
-        Cookies.set('user', JSON.stringify(user));
-    } else {
-        console.error('No user object found in login response');
-    }
+    return response.data.data;
+  },
 
+  async startGoogleLogin() {
+    const response = await axios.post<ApiResponse<GoogleLoginStartResponse>>(
+      `${getDirectApiUrl()}/auth/login`,
+      { method: 'google', client: AUTH_CLIENT },
+      {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-mode': 'body',
+        },
+      },
+    );
+
+    return response.data.data;
+  },
+
+  async refreshSessionFromCookies() {
+    const response = await api.post<ApiResponse<RefreshResponse>>('/auth/refresh', {});
+    persistRefreshResponse(response.data.data);
+    return response.data.data;
+  },
+
+  async completeGoogleLogin() {
+    await this.refreshSessionFromCookies();
+    const response = await api.get<ApiResponse<User>>('/profile');
+    persistUser(response.data.data);
     return response.data.data;
   },
 
@@ -54,6 +115,7 @@ export const authService = {
       Cookies.remove('accessToken');
       Cookies.remove('refreshToken');
       Cookies.remove('sid');
+      Cookies.remove('refresh');
       Cookies.remove('user');
       window.location.href = '/login';
     }

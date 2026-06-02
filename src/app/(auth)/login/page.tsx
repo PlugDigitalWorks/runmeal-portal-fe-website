@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -11,6 +11,8 @@ import { ChefHat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { authService } from '@/services/auth.service';
+import { GoogleAuthButton } from '@/components/auth/GoogleAuthButton';
+import { RecaptchaWidget } from '@/components/auth/RecaptchaWidget';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -23,6 +25,10 @@ export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const [recaptchaResetKey, setRecaptchaResetKey] = useState(0);
+  const isRecaptchaEnabled = Boolean(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY);
+  const handledGoogleCallbackRef = useRef(false);
 
   const {
     register,
@@ -33,14 +39,21 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (data: LoginFormValues) => {
+    if (isRecaptchaEnabled && !recaptchaToken) {
+      setError('Please complete the security check.');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     try {
-      await authService.login(data);
+      await authService.login({ ...data, recaptchaToken: recaptchaToken ?? undefined });
       router.push('/'); 
       router.refresh(); // Ensure server components re-render if any (not using server components for auth dependent rendering yet, but good practice)
     } catch (err) {
       const error = err as AxiosError<{ message: string }>;
+      setRecaptchaToken(null);
+      setRecaptchaResetKey((key) => key + 1);
       setError(
         error.response?.data?.message || 'Invalid email or password.'
       );
@@ -48,6 +61,36 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (handledGoogleCallbackRef.current) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const authStatus = params.get('auth');
+    if (!authStatus) return;
+
+    handledGoogleCallbackRef.current = true;
+    const reason = params.get('reason');
+    window.history.replaceState(null, '', '/login');
+
+    if (authStatus === 'success') {
+      setIsLoading(true);
+      setError(null);
+      authService.completeGoogleLogin()
+        .then(() => {
+          router.push('/');
+          router.refresh();
+        })
+        .catch((error) => {
+          console.error(error);
+          setError('Google login completed, but the session could not be restored.');
+        })
+        .finally(() => setIsLoading(false));
+      return;
+    }
+
+    setError(reason || 'Google login failed. Please try again.');
+  }, [router]);
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-white">
@@ -80,6 +123,22 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <GoogleAuthButton
+              disabled={isLoading}
+              onError={(message) => setError(message)}
+            />
+
+            <div className="relative py-2">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-zinc-200" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="bg-white px-2 text-zinc-500">
+                  Or sign in with email
+                </span>
+              </div>
+            </div>
+
             {error && (
               <div className="p-3 text-sm text-red-500 bg-red-50 border border-red-100 rounded-lg">
                 {error}
@@ -111,7 +170,18 @@ export default function LoginPage() {
                 </div>
             </div>
 
-            <Button type="submit" className="w-full" isLoading={isLoading} size="lg">
+            <RecaptchaWidget
+              onTokenChange={setRecaptchaToken}
+              resetKey={recaptchaResetKey}
+            />
+
+            <Button
+              type="submit"
+              className="w-full"
+              isLoading={isLoading}
+              size="lg"
+              disabled={isRecaptchaEnabled && !recaptchaToken}
+            >
               Sign In
             </Button>
           </form>
