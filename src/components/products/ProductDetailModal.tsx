@@ -209,8 +209,8 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
                     <div>
                         <h2 className="text-2xl font-bold text-zinc-800">{product.name}</h2>
                         <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xl font-bold text-orange-600">${Number(product.price).toFixed(2)}</span>
-                            {product.discountedPrice && <span className="text-sm text-zinc-400 line-through">${Number(product.discountedPrice).toFixed(2)}</span>}
+                            {product.discountedPrice ? <span className="text-xl font-bold text-orange-600">${Number(product.discountedPrice).toFixed(2)}</span> :                             <span className="text-xl font-bold text-orange-600">${Number(product.price).toFixed(2)}</span>}
+                            {product.discountedPrice && <span className="text-sm text-zinc-400 line-through">${Number(product.price).toFixed(2)}</span>}
                         </div>
                         <p className="mt-2 text-zinc-600 text-sm leading-relaxed">{product.description}</p>
                     </div>
