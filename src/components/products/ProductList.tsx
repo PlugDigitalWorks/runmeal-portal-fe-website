@@ -95,7 +95,9 @@ export function ProductList({ products, branchId }: ProductListProps) {
 
               <div className="flex items-center justify-between mt-2">
                 <span className="font-bold text-lg text-zinc-900">
-                  ${Number(product.price).toFixed(2)}
+
+                  {product.discountedPrice ? <span className="text-xl font-bold text-orange-600">${Number(product.discountedPrice).toFixed(2)}</span> :                             <span className="text-xl font-bold text-orange-600">${Number(product.price).toFixed(2)}</span>}
+                            {product.discountedPrice && <span className="text-sm pl-1 text-zinc-400 line-through">${Number(product.price).toFixed(2)}</span>}
                 </span>
                 <button
                   onClick={() => handleProductClick(product)}
