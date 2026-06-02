@@ -3,6 +3,7 @@ export interface Address {
   countryCode: string;
   province: string;
   district: string;
+  phoneE164?: string | null;
   postalCode: string;
   street: string;
   buildingNumber: string;
@@ -18,6 +19,7 @@ export interface CreateAddressDto {
   countryCode: string;
   province: string;
   district: string;
+  phoneE164?: string;
   postalCode: string;
   street: string;
   buildingNumber: string;
