@@ -100,14 +100,14 @@ export default function LoginPage() {
         <div className="relative z-10">
           <div className="flex items-center gap-2 text-white mb-8">
              <ChefHat className="h-8 w-8 text-orange-500" />
-            <span className="text-2xl font-bold">FoodDelivery</span>
+            <span className="text-2xl font-bold">Runmeal</span>
           </div>
           <h2 className="text-4xl font-bold text-white leading-tight max-w-lg">
             Welcome back! We missed you.
           </h2>
         </div>
          <div className="relative z-10 text-zinc-400 text-sm">
-          © 2024 FoodDelivery Inc.
+          © 2024 Runmeal Inc.
         </div>
       </div>
 

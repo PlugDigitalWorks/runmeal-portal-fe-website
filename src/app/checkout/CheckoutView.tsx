@@ -91,7 +91,7 @@ const formatPriceDelta = (price?: number | null) => {
         return '';
     }
 
-    return ` (+${price})`;
+    return ` (+₺${price.toFixed(2)})`;
 };
 
 const getCartItemDetailLines = (item: CartItem) => {
@@ -710,14 +710,14 @@ export default function CheckoutView() {
                                     <div className="rounded-lg border border-orange-100 bg-orange-50/60 px-4 py-3">
                                         <span className="text-xs font-medium uppercase text-orange-700">Available Balance</span>
                                         <div className="mt-1 text-2xl font-bold leading-none text-zinc-900">
-                                            {walletBalance?.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
+                                            ₺{walletBalance?.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                                         </div>
                                     </div>
 
                                     {walletAppliedAmount > 0 ? (
                                         <div className="space-y-2">
                                             <div className="flex items-center justify-between bg-green-50 text-green-700 p-3 rounded-lg border border-green-200">
-                                                <span className="font-medium text-sm">Used: {walletAppliedAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</span>
+                                                <span className="font-medium text-sm">Used: ₺{walletAppliedAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
                                                 <button
                                                     onClick={handleRemoveWallet}
                                                     className="text-green-700 hover:text-green-900 bg-green-100 hover:bg-green-200 p-1.5 rounded-full transition-colors"
@@ -726,7 +726,7 @@ export default function CheckoutView() {
                                                 </button>
                                             </div>
                                             <p className="text-xs text-green-600 text-right">
-                                                -{walletAppliedAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL applied
+                                                -₺{walletAppliedAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} applied
                                             </p>
                                         </div>
                                     ) : (

@@ -1,4 +1,4 @@
-# 🍔 Food Delivery User Frontend
+# 🍔 Runmeal Portal Frontend
 
 Next.js platform storefront (runmeal.com) - browse all brands and place orders.
 

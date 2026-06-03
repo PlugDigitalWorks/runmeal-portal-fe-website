@@ -228,22 +228,22 @@ export default function OrderDetailPage() {
               <div className="space-y-3 border-t border-zinc-200 pt-5">
                 <div className="flex justify-between text-zinc-700">
                   <span>Ara Toplam</span>
-                  <span>{formatCurrency(subtotal, 'TL')}</span>
+                  <span>{formatCurrency(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-zinc-700">
                   <span>Teslimat Ücreti</span>
-                  <span>{deliveryFee > 0 ? formatCurrency(deliveryFee, 'TL') : 'Free'}</span>
+                  <span>{deliveryFee > 0 ? formatCurrency(deliveryFee) : 'Free'}</span>
                 </div>
                 {discountAmount > 0 ? (
                   <div className="flex justify-between text-emerald-600">
                     <span>İndirim</span>
-                    <span>-{formatCurrency(discountAmount, 'TL')}</span>
+                    <span>-{formatCurrency(discountAmount)}</span>
                   </div>
                 ) : null}
                 {taxAmount > 0 ? (
                   <div className="flex justify-between text-zinc-700">
                     <span>KDV dahil</span>
-                    <span>{formatCurrency(taxAmount, 'TL')}</span>
+                    <span>{formatCurrency(taxAmount)}</span>
                   </div>
                 ) : null}
                 {order.couponCode ? (
@@ -254,7 +254,7 @@ export default function OrderDetailPage() {
                 ) : null}
                 <div className="flex justify-between border-t border-zinc-200 pt-3 text-lg font-bold text-zinc-950">
                   <span>Toplam</span>
-                  <span className="text-orange-600">{formatCurrency(order.totalPrice, 'TL')}</span>
+                  <span className="text-orange-600">{formatCurrency(order.totalPrice)}</span>
                 </div>
               </div>
 
@@ -277,4 +277,3 @@ export default function OrderDetailPage() {
     </div>
   );
 }
-

@@ -37,7 +37,7 @@ export function Header({ user, addresses = [], onAddressSelect, searchComponent 
              <ChefHat className="h-6 w-6" />
           </div>
           <span className="text-xl font-bold text-zinc-900 hidden sm:inline-block tracking-tight">
-            FoodDelivery
+            Runmeal
           </span>
         </Link>
 

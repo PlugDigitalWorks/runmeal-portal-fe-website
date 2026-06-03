@@ -10,16 +10,13 @@ export function toNumber(value: number | string | null | undefined): number {
   return 0;
 }
 
-export function formatCurrency(
-  value: number | string | null | undefined,
-  suffix = "",
-): string {
+export function formatCurrency(value: number | string | null | undefined): string {
   const amount = toNumber(value);
   const formatted = amount.toLocaleString("tr-TR", {
     minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
     maximumFractionDigits: 2,
   });
-  return suffix ? `${formatted} ${suffix}` : `₺${formatted}`;
+  return `₺${formatted}`;
 }
 
 export function formatOrderDate(value: string | null | undefined): string {

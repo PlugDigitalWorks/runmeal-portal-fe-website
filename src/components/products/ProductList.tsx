@@ -6,8 +6,7 @@ import { useCart } from '@/context/CartContext';
 import { useBranch } from '@/context/BranchContext';
 import Image from 'next/image';
 import { Plus } from 'lucide-react';
-import { ProductDetailModal } from './ProductDetailModal';
-import { toast } from 'sonner';
+import { CartAddonSelection, CartOptionSelection, ProductDetailModal } from './ProductDetailModal';
 
 interface ProductListProps {
   products: Product[];
@@ -51,7 +50,12 @@ export function ProductList({ products, branchId }: ProductListProps) {
     setIsModalOpen(true);
   };
 
-  const handleAddToCartFromModal = async (product: Product, quantity: number, options: any, addons: any) => {
+  const handleAddToCartFromModal = async (
+    product: Product,
+    quantity: number,
+    options: CartOptionSelection[],
+    addons: CartAddonSelection[],
+  ) => {
     await addToCart(product.id, quantity, options, addons, undefined, product);
   };
 
@@ -96,8 +100,8 @@ export function ProductList({ products, branchId }: ProductListProps) {
               <div className="flex items-center justify-between mt-2">
                 <span className="font-bold text-lg text-zinc-900">
 
-                  {product.discountedPrice ? <span className="text-xl font-bold text-orange-600">${Number(product.discountedPrice).toFixed(2)}</span> :                             <span className="text-xl font-bold text-orange-600">${Number(product.price).toFixed(2)}</span>}
-                            {product.discountedPrice && <span className="text-sm pl-1 text-zinc-400 line-through">${Number(product.price).toFixed(2)}</span>}
+                  {product.discountedPrice ? <span className="text-xl font-bold text-orange-600">₺{Number(product.discountedPrice).toFixed(2)}</span> :                             <span className="text-xl font-bold text-orange-600">₺{Number(product.price).toFixed(2)}</span>}
+                            {product.discountedPrice && <span className="text-sm pl-1 text-zinc-400 line-through">₺{Number(product.price).toFixed(2)}</span>}
                 </span>
                 <button
                   onClick={() => handleProductClick(product)}

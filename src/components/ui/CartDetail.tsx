@@ -72,7 +72,7 @@ export function CartDetail({ cart, branch, onClose }: CartDetailProps) {
                                         
                                         <div className="flex justify-between items-center">
                                             <span className="font-semibold text-zinc-900">
-                                                {(item.price * item.qty).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                                                ₺{(item.price * item.qty).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </span>
                                             
                                             <div className="flex items-center gap-3 bg-white border border-zinc-200 rounded-full px-2 py-1 shadow-sm">
@@ -112,7 +112,7 @@ export function CartDetail({ cart, branch, onClose }: CartDetailProps) {
                      <div className="bg-white rounded-xl p-4 border border-zinc-100 shadow-sm space-y-2 text-sm">
                           <div className="flex justify-between text-zinc-900">
                              <span>Subtotal</span>
-                             <span>{cartTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</span>
+                             <span>₺{cartTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
                          </div>
                     </div>
                 </div>
@@ -123,7 +123,7 @@ export function CartDetail({ cart, branch, onClose }: CartDetailProps) {
                  <div className="flex justify-between items-center mb-4">
                      <span className="font-bold text-zinc-900">Total <span className="text-xs font-normal text-zinc-500">(fees and tax included)</span></span>
                      <div className="text-right">
-                         <div className="font-bold text-emerald-600 text-lg">{finalTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL</div>
+                         <div className="font-bold text-emerald-600 text-lg">₺{finalTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                      </div>
                  </div>
                  <Button 
