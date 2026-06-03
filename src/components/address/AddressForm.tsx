@@ -4,11 +4,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { ApiResponse } from '@/types/auth';
+import { Address } from '@/types/address';
 import { userService } from '@/services/user.service';
 import { AxiosError } from 'axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Save } from 'lucide-react';
+import { AlertCircle, Save } from 'lucide-react';
 import { LocationPicker, GeocodedAddress, AddressComponent, Location } from '@/components/ui/LocationPicker';
 import { AddressSelects } from '@/components/ui/AddressSelects';
 import { Country, State, City } from 'country-state-city';
@@ -46,12 +47,14 @@ interface AddressFormProps {
     initialValues?: Partial<AddressFormValues>;
     addressId?: string | null;
     onCancel: () => void;
-    onSuccess: () => Promise<void>;
+    onSuccess: (address?: Address) => Promise<void>;
+    resolveCreateIsActive?: (data: AddressFormValues) => Promise<boolean> | boolean;
 }
 
-export function AddressForm({ initialValues, addressId, onCancel, onSuccess }: AddressFormProps) {
+export function AddressForm({ initialValues, addressId, onCancel, onSuccess, resolveCreateIsActive }: AddressFormProps) {
   const [addressLoading, setAddressLoading] = useState(false);
   const [searchAddress, setSearchAddress] = useState<string | undefined>(undefined);
+  const [formError, setFormError] = useState<string | null>(null);
   const ignoreSearchRef = useRef(false);
 
   const defaultValues = {
@@ -183,6 +186,7 @@ export function AddressForm({ initialValues, addressId, onCancel, onSuccess }: A
 
   const onSubmit = async (data: AddressFormValues) => {
     setAddressLoading(true);
+    setFormError(null);
     try {
       if (addressId) {
           // Update existing
@@ -192,18 +196,23 @@ export function AddressForm({ initialValues, addressId, onCancel, onSuccess }: A
           }
       } else {
           // Create new
-          const newAddress = await userService.createAddress({ ...data, isActive: true });
+          const isActive = resolveCreateIsActive ? await resolveCreateIsActive(data) : true;
+          let newAddress = await userService.createAddress({ ...data, isActive });
+          if (!isActive && newAddress?.isActive) {
+              newAddress = await userService.updateAddress(newAddress.id, { isActive: false });
+          }
           if (newAddress) {
-               await onSuccess();
+               await onSuccess(newAddress);
           }
       }
     } catch (err) {
       const error = err as AxiosError<ApiResponse<unknown>>;
       console.error('Failed to save address', error);
+      const serverMessage = error.response?.data?.message;
       if (error.response?.status === 429) {
-          alert('You are sending requests too quickly. Please wait a moment.');
+          setFormError('You are sending requests too quickly. Please wait a moment.');
       } else {
-          alert('Failed to save address');
+          setFormError(serverMessage || 'Failed to save address');
       }
     } finally {
       setAddressLoading(false);
@@ -263,6 +272,13 @@ export function AddressForm({ initialValues, addressId, onCancel, onSuccess }: A
          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input label="Apartment" {...register('apartmentNumber')} error={errors.apartmentNumber?.message} />
         </div>
+
+        {formError && (
+            <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <p>{formError}</p>
+            </div>
+        )}
 
         <div className="flex justify-end pt-2 gap-2">
             <Button type="button" variant="outline" onClick={onCancel}>

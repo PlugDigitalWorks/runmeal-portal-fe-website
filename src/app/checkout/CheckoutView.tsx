@@ -1,20 +1,141 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useUser } from '@/context/UserContext';
 import { useCart } from '@/context/CartContext';
 import { useBranch } from '@/context/BranchContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
-import { MapPin, User as UserIcon, CheckCircle2, Loader2, Plus, Ticket, Wallet, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Edit2, Loader2, MapPin, Plus, Ticket, User as UserIcon, Wallet, X } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { paymentService } from '@/services/payment.service';
 import { userService } from '@/services/user.service';
 import { walletService, WalletBalance } from '@/services/wallet.service';
+import { branchService } from '@/services/branch.service';
 import { AxiosError } from 'axios';
-import { AddressForm } from '@/components/address/AddressForm';
+import { AddressForm, AddressFormValues } from '@/components/address/AddressForm';
+import type { Address } from '@/types/address';
+import type { Branch } from '@/types/branch';
+import type { Cart, CartItem } from '@/types/cart';
+
+type ApiErrorBody = {
+    message?: string | string[];
+    statusCode?: number;
+    error?: string;
+};
+
+type AvailablePromotion = {
+    applicable: boolean;
+    unapplicableReason?: string;
+    promotion: {
+        name: string;
+        description?: string;
+        couponCode: string;
+    };
+};
+
+type CartWithBranchVariants = Cart & {
+    branch?: { id?: string | null } | null;
+    branch_id?: string | null;
+};
+
+type BranchWithIdVariants = Branch & {
+    branchId?: string | null;
+    branch_id?: string | null;
+};
+
+const getCartBranchId = (cart: Cart | undefined, selectedBranchId?: string) => {
+    const cartWithBranch = cart as CartWithBranchVariants | undefined;
+
+    return cartWithBranch?.branchId
+        || cartWithBranch?.branch_id
+        || cartWithBranch?.branch?.id
+        || selectedBranchId
+        || '';
+};
+
+const getBranchIdentity = (branch: Branch) => {
+    const branchWithVariants = branch as BranchWithIdVariants;
+    return branchWithVariants.id || branchWithVariants.branchId || branchWithVariants.branch_id || '';
+};
+
+const toFiniteNumber = (value: number | string | null | undefined) => {
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue) ? numericValue : null;
+};
+
+const isBranchServingLocation = async (
+    targetBranchId: string,
+    latitudeValue: number | string | null | undefined,
+    longitudeValue: number | string | null | undefined,
+) => {
+    if (!targetBranchId) {
+        return true;
+    }
+
+    const latitude = toFiniteNumber(latitudeValue);
+    const longitude = toFiniteNumber(longitudeValue);
+
+    if (latitude === null || longitude === null) {
+        return false;
+    }
+
+    const nearbyBranches = await branchService.getNearbyBranches(latitude, longitude);
+    return nearbyBranches.some((branch) => getBranchIdentity(branch) === targetBranchId);
+};
+
+const formatPriceDelta = (price?: number | null) => {
+    if (!price) {
+        return '';
+    }
+
+    return ` (+${price})`;
+};
+
+const getCartItemDetailLines = (item: CartItem) => {
+    const optionLines = (item.options || []).flatMap((group) =>
+        group.selections.map((selection) =>
+            `${group.groupName}: ${selection.optionName}${formatPriceDelta(selection.priceDelta)}`,
+        ),
+    );
+
+    const addonLines = (item.addons || []).map((addon) =>
+        `${addon.name}${formatPriceDelta(addon.price)}`,
+    );
+
+    return [...optionLines, ...addonLines];
+};
+
+const getApiErrorMessage = (error: unknown) => {
+    const axiosError = error as AxiosError<ApiErrorBody>;
+    const message = axiosError.response?.data?.message;
+
+    if (Array.isArray(message)) {
+        return message.join(' ');
+    }
+
+    return message || 'Failed to complete order. Please try again.';
+};
+
+const getCheckoutErrorHelp = (message: string) => {
+    const lowerMessage = message.toLowerCase();
+
+    if (lowerMessage.includes('phone')) {
+        return 'Edit the selected address and add a phone number.';
+    }
+
+    if (lowerMessage.includes('deliver to your current address')) {
+        return 'Please select a different address or add a new one.';
+    }
+
+    if (lowerMessage.includes('served by this branch')) {
+        return 'Add another address or choose a cart from a branch that serves this address.';
+    }
+
+    return null;
+};
 
 
 
@@ -28,7 +149,10 @@ export default function CheckoutView() {
     const [selectedAddressId, setSelectedAddressId] = useState<string>('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [isAddingAddress, setIsAddingAddress] = useState(false);
+    const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
     const [deliveryError, setDeliveryError] = useState<string | null>(null);
+    const [deliverableAddressIds, setDeliverableAddressIds] = useState<Set<string>>(new Set());
+    const [isCheckingAddresses, setIsCheckingAddresses] = useState(false);
 
     // Coupon states
     const [couponCode, setCouponCode] = useState('');
@@ -45,6 +169,11 @@ export default function CheckoutView() {
     const selectedCart = cartIdParam
         ? carts.find(c => (c.cartId || c.id) === cartIdParam)
         : carts.find(c => c.items && c.items.length > 0);
+    const targetBranchId = getCartBranchId(selectedCart, selectedBranch?.id);
+    const deliverableAddresses = useMemo(
+        () => addresses.filter((address) => deliverableAddressIds.has(address.id)),
+        [addresses, deliverableAddressIds],
+    );
 
     useEffect(() => {
         if (isCartOpen) {
@@ -53,14 +182,75 @@ export default function CheckoutView() {
     }, [isCartOpen, closeCart]);
 
     useEffect(() => {
-        if (!selectedAddressId && addresses && addresses.length > 0) {
-            const active = addresses.find(a => a.isActive);
-            const timer = setTimeout(() => {
-                setSelectedAddressId(active ? active.id : addresses[0].id);
-            }, 0);
-            return () => clearTimeout(timer);
+        let isCurrent = true;
+
+        const checkDeliverableAddresses = async () => {
+            if (!targetBranchId || addresses.length === 0) {
+                if (isCurrent) {
+                    setDeliverableAddressIds(targetBranchId ? new Set() : new Set(addresses.map((address) => address.id)));
+                    setIsCheckingAddresses(false);
+                }
+                return;
+            }
+
+            setIsCheckingAddresses(true);
+
+            try {
+                const results = await Promise.all(
+                    addresses.map(async (address) => {
+                        try {
+                            const isServed = await isBranchServingLocation(targetBranchId, address.latitude, address.longitude);
+                            return [address.id, isServed] as const;
+                        } catch (error) {
+                            console.error(`Failed to check delivery coverage for address ${address.id}`, error);
+                            return [address.id, false] as const;
+                        }
+                    }),
+                );
+
+                if (!isCurrent) return;
+
+                setDeliverableAddressIds(
+                    new Set(results.filter(([, isDeliverable]) => isDeliverable).map(([addressId]) => addressId)),
+                );
+            } finally {
+                if (isCurrent) {
+                    setIsCheckingAddresses(false);
+                }
+            }
+        };
+
+        checkDeliverableAddresses();
+
+        return () => {
+            isCurrent = false;
+        };
+    }, [addresses, targetBranchId]);
+
+    useEffect(() => {
+        if (isCheckingAddresses) {
+            return;
         }
-    }, [addresses, selectedAddressId]);
+
+        const timer = setTimeout(() => {
+            if (deliverableAddresses.length === 0) {
+                if (selectedAddressId) {
+                    setSelectedAddressId('');
+                }
+                return;
+            }
+
+            const selectedIsDeliverable = deliverableAddresses.some((address) => address.id === selectedAddressId);
+            if (selectedIsDeliverable) {
+                return;
+            }
+
+            const active = deliverableAddresses.find((address) => address.isActive);
+            setSelectedAddressId((active || deliverableAddresses[0]).id);
+        }, 0);
+
+        return () => clearTimeout(timer);
+    }, [deliverableAddresses, isCheckingAddresses, selectedAddressId]);
 
     useEffect(() => {
         if (deliveryError) {
@@ -93,8 +283,15 @@ export default function CheckoutView() {
 
     const items = selectedCart.items;
     const subtotal = selectedCart.totalCartPrice || 0;
-    const deliveryFee = 0;
     const finalTotal = Math.max(0, (selectedCart.finalPrice ?? selectedCart.totalCartPrice ?? subtotal) - walletAppliedAmount);
+    const selectedAddress = deliverableAddresses.find(a => a.id === selectedAddressId);
+    const selectedAddressHasPhone = Boolean(selectedAddress?.phoneE164?.trim());
+    const editingAddress = editingAddressId ? addresses.find(a => a.id === editingAddressId) : undefined;
+    const deliveryErrorHelp = deliveryError ? getCheckoutErrorHelp(deliveryError) : null;
+    const deliveryErrorTitle = deliveryError?.toLowerCase().includes('phone')
+        ? 'Address Needs Phone Number'
+        : 'Checkout Error';
+    const branchUnavailableMessage = 'This branch cannot serve the address you selected.';
 
     // --- Coupon Handlers ---
     const handleApplyCoupon = async () => {
@@ -103,7 +300,7 @@ export default function CheckoutView() {
         try {
             await applyCoupon(couponCode);
             setCouponCode('');
-        } catch (error) {
+        } catch {
             // Error handled in context
         } finally {
             setIsCouponLoading(false);
@@ -115,7 +312,7 @@ export default function CheckoutView() {
         try {
             await applyCoupon(code);
             setShowCouponModal(false);
-        } catch (error) {
+        } catch {
             // Error handled in context
         } finally {
             setIsCouponLoading(false);
@@ -185,8 +382,28 @@ export default function CheckoutView() {
         try {
             setIsProcessing(true);
 
-            const selectedAddr = addresses.find(a => a.id === selectedAddressId);
-            if (selectedAddr && !selectedAddr.isActive) {
+            if (isCheckingAddresses) {
+                const msg = 'Checking delivery availability. Please wait.';
+                setDeliveryError(msg);
+                toast.error(msg);
+                return;
+            }
+
+            if (!selectedAddress) {
+                const msg = 'Please select a delivery address served by this branch.';
+                setDeliveryError(msg);
+                toast.error(msg);
+                return;
+            }
+
+            if (!selectedAddress.phoneE164) {
+                const msg = 'Phone number is required to place an order.';
+                setDeliveryError(msg);
+                toast.error(msg);
+                return;
+            }
+
+            if (!selectedAddress.isActive) {
                 await userService.updateAddress(selectedAddressId, { isActive: true });
             }
 
@@ -210,33 +427,56 @@ export default function CheckoutView() {
 
         } catch (error) {
             console.error('Order/Payment Error:', error);
-            const axiosError = error as AxiosError<{ message: string, statusCode?: number }>;
-            const msg = axiosError.response?.data?.message || 'Failed to complete order. Please try again.';
-
-            if (axiosError.response?.status === 400 && msg.toLowerCase().includes('deliver to your current address')) {
-                setDeliveryError(msg);
-                toast.error(msg);
-            } else {
-                toast.error(msg);
-            }
+            const msg = getApiErrorMessage(error);
+            setDeliveryError(msg);
+            toast.error(msg);
         } finally {
             setIsProcessing(false);
         }
     };
 
-    const handleAddressSuccess = async () => {
+    const resolveNewAddressIsActive = async (data: AddressFormValues) => {
+        const isServed = await isBranchServingLocation(targetBranchId, data.latitude, data.longitude);
+        if (!isServed) {
+            setDeliveryError(branchUnavailableMessage);
+        }
+        return isServed;
+    };
+
+    const handleAddressSuccess = async (address?: Address) => {
         await refreshAddresses();
         setIsAddingAddress(false);
+        if (address && !address.isActive) {
+            setSelectedAddressId('');
+            setDeliveryError(branchUnavailableMessage);
+            toast.error(branchUnavailableMessage);
+            return;
+        }
+
+        if (address?.id) {
+            setSelectedAddressId(address.id);
+        }
+        setDeliveryError(null);
+    };
+
+    const handleAddressEditSuccess = async () => {
+        const editedAddressId = editingAddressId;
+
+        await refreshAddresses();
+        if (editedAddressId) {
+            setSelectedAddressId(editedAddressId);
+        }
+        setEditingAddressId(null);
         setDeliveryError(null);
     };
 
     return (
         <div className="min-h-screen bg-zinc-50 py-8 pb-32">
-            <div className="container mx-auto px-4 max-w-4xl">
+            <div className="container mx-auto px-4 max-w-6xl">
                 <h1 className="text-3xl font-bold text-zinc-900 mb-8">Checkout</h1>
 
-                <div className="grid md:grid-cols-3 gap-8">
-                    <div className="md:col-span-2 space-y-6">
+                <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]">
+                    <div className="space-y-6">
 
                         {/* Delivery Address */}
                         <Card className={`border-zinc-200 shadow-sm ${deliveryError ? 'border-red-300 ring-2 ring-red-100' : ''}`}>
@@ -261,14 +501,20 @@ export default function CheckoutView() {
                             <CardContent className="pt-4">
                                 {deliveryError && (
                                     <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-start gap-2">
-                                        <div className="shrink-0 mt-0.5">
-                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
-                                            </svg>
-                                        </div>
+                                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                                         <div>
-                                            <p className="font-semibold">Delivery Unavailable</p>
-                                            <p>{deliveryError} Please select a different address or add a new one.</p>
+                                            <p className="font-semibold">{deliveryErrorTitle}</p>
+                                            <p>{deliveryError}</p>
+                                            {deliveryErrorHelp && <p className="mt-1">{deliveryErrorHelp}</p>}
+                                            {selectedAddress && (
+                                                <button
+                                                    type="button"
+                                                    className="mt-2 text-sm font-semibold text-red-700 underline-offset-4 hover:underline"
+                                                    onClick={() => setEditingAddressId(selectedAddressId)}
+                                                >
+                                                    Edit selected address
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -277,12 +523,15 @@ export default function CheckoutView() {
                                     <AddressForm
                                         onCancel={() => setIsAddingAddress(false)}
                                         onSuccess={handleAddressSuccess}
+                                        resolveCreateIsActive={resolveNewAddressIsActive}
                                     />
                                 ) : (
                                     <>
-                                        {addresses && addresses.length > 0 ? (
+                                        {isCheckingAddresses ? (
+                                            <div className="py-4 text-sm text-zinc-500">Checking delivery addresses...</div>
+                                        ) : deliverableAddresses.length > 0 ? (
                                             <div className="space-y-4">
-                                                {addresses.map(addr => (
+                                                {deliverableAddresses.map(addr => (
                                                     <div
                                                         key={addr.id}
                                                         className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedAddressId === addr.id
@@ -291,21 +540,42 @@ export default function CheckoutView() {
                                                             }`}
                                                         onClick={() => setSelectedAddressId(addr.id)}
                                                     >
-                                                        <div className="flex items-start justify-between">
-                                                            <div>
+                                                        <div className="flex items-start justify-between gap-3">
+                                                            <div className="min-w-0">
                                                                 <div className="font-semibold text-zinc-900">{addr.province}, {addr.district}</div>
                                                                 <div className="text-sm text-zinc-500 mt-1">{addr.street} No: {addr.buildingNumber}</div>
+                                                                <div className={`text-xs mt-2 ${addr.phoneE164 ? 'text-zinc-500' : 'text-red-600'}`}>
+                                                                    {addr.phoneE164 || 'Phone number missing'}
+                                                                </div>
                                                             </div>
-                                                            {selectedAddressId === addr.id && (
-                                                                <CheckCircle2 className="text-orange-600 h-5 w-5" />
-                                                            )}
+                                                            <div className="flex shrink-0 items-center gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    aria-label="Edit address"
+                                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-white hover:text-orange-600"
+                                                                    onClick={(event) => {
+                                                                        event.stopPropagation();
+                                                                        setEditingAddressId(addr.id);
+                                                                        setDeliveryError(null);
+                                                                    }}
+                                                                >
+                                                                    <Edit2 className="h-4 w-4" />
+                                                                </button>
+                                                                {selectedAddressId === addr.id && (
+                                                                    <CheckCircle2 className="text-orange-600 h-5 w-5" />
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))}
                                             </div>
                                         ) : (
                                             <div className="text-center py-4">
-                                                <p className="text-zinc-500 mb-4">No address found.</p>
+                                                <p className="text-zinc-500 mb-4">
+                                                    {addresses.length > 0
+                                                        ? 'No saved address is served by this branch.'
+                                                        : 'No address found.'}
+                                                </p>
                                                 <Button variant="outline" onClick={() => setIsAddingAddress(true)}>
                                                     Add New Address
                                                 </Button>
@@ -356,21 +626,48 @@ export default function CheckoutView() {
                                 </CardHeader>
                                 <CardContent className="pt-4">
                                     {selectedCart?.appliedPromotion ? (
-                                        <div className="flex items-center justify-between bg-green-50 text-green-700 p-3 rounded-lg border border-green-200">
-                                            <div className="flex items-center gap-2">
-                                                <Ticket size={16} />
-                                                <div>
-                                                    <p className="font-bold text-sm">{selectedCart.appliedPromotion.name}</p>
-                                                    <p className="text-xs">{selectedCart.appliedPromotion.description}</p>
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between gap-3 bg-green-50 text-green-700 p-3 rounded-lg border border-green-200">
+                                                <div className="flex min-w-0 items-center gap-2">
+                                                    <Ticket size={16} className="shrink-0" />
+                                                    <div className="min-w-0">
+                                                        <p className="font-bold text-sm">{selectedCart.appliedPromotion.name}</p>
+                                                        <p className="text-xs">{selectedCart.appliedPromotion.description}</p>
+                                                    </div>
                                                 </div>
+                                                <button
+                                                    type="button"
+                                                    aria-label="Remove promotion"
+                                                    onClick={handleRemoveCoupon}
+                                                    disabled={isCouponLoading}
+                                                    className="shrink-0 text-green-700 hover:text-green-900 bg-green-100 hover:bg-green-200 p-1.5 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    <X size={14} />
+                                                </button>
                                             </div>
                                             <button
-                                                onClick={handleRemoveCoupon}
-                                                disabled={isCouponLoading}
-                                                className="text-green-700 hover:text-green-900 bg-green-100 hover:bg-green-200 p-1.5 rounded-full transition-colors"
+                                                type="button"
+                                                onClick={() => setShowCouponModal(true)}
+                                                className="w-full text-center text-orange-600 text-sm hover:underline"
                                             >
-                                                <X size={14} />
+                                                View Available Coupons
                                             </button>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={couponCode}
+                                                    onChange={(e) => setCouponCode(e.target.value)}
+                                                    placeholder="Enter coupon code"
+                                                    className="min-w-0 flex-1 border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 uppercase placeholder:normal-case"
+                                                />
+                                                <button
+                                                    onClick={handleApplyCoupon}
+                                                    disabled={!couponCode.trim() || isCouponLoading}
+                                                    className="bg-zinc-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                >
+                                                    Apply
+                                                </button>
+                                            </div>
                                         </div>
                                     ) : (
                                         <div className="space-y-3">
@@ -386,7 +683,7 @@ export default function CheckoutView() {
                                                     value={couponCode}
                                                     onChange={(e) => setCouponCode(e.target.value)}
                                                     placeholder="Enter coupon code"
-                                                    className="flex-1 border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 uppercase placeholder:normal-case"
+                                                    className="min-w-0 flex-1 border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 uppercase placeholder:normal-case"
                                                 />
                                                 <button
                                                     onClick={handleApplyCoupon}
@@ -402,61 +699,62 @@ export default function CheckoutView() {
                             </Card>
 
                             {/* Wallet Card */}
-                            <Card className="border-zinc-200 shadow-sm overflow-hidden">
+                            <Card className="border-zinc-200 shadow-sm overflow-hidden h-full flex flex-col">
                                 <CardHeader className="pb-3 border-b border-zinc-100">
                                     <CardTitle className="flex items-center gap-2 text-lg">
                                         <Wallet className="text-orange-600 h-5 w-5" />
                                         Wallet
                                     </CardTitle>
                                 </CardHeader>
-                                <CardContent className="pt-4">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <span className="text-zinc-600 text-sm">Available Balance</span>
-                                        <span className="font-bold text-zinc-800">
+                                <CardContent className="flex flex-1 flex-col justify-between gap-4 pt-4">
+                                    <div className="rounded-lg border border-orange-100 bg-orange-50/60 px-4 py-3">
+                                        <span className="text-xs font-medium uppercase text-orange-700">Available Balance</span>
+                                        <div className="mt-1 text-2xl font-bold leading-none text-zinc-900">
                                             {walletBalance?.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
-                                        </span>
+                                        </div>
                                     </div>
 
                                     {walletAppliedAmount > 0 ? (
-                                        <div className="flex items-center justify-between bg-green-50 text-green-700 p-3 rounded-lg border border-green-200">
-                                            <span className="font-medium text-sm">Used: {walletAppliedAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</span>
-                                            <button
-                                                onClick={handleRemoveWallet}
-                                                className="text-green-700 hover:text-green-900 bg-green-100 hover:bg-green-200 p-1.5 rounded-full transition-colors"
-                                            >
-                                                <X size={14} />
-                                            </button>
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between bg-green-50 text-green-700 p-3 rounded-lg border border-green-200">
+                                                <span className="font-medium text-sm">Used: {walletAppliedAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</span>
+                                                <button
+                                                    onClick={handleRemoveWallet}
+                                                    className="text-green-700 hover:text-green-900 bg-green-100 hover:bg-green-200 p-1.5 rounded-full transition-colors"
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+                                            <p className="text-xs text-green-600 text-right">
+                                                -{walletAppliedAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL applied
+                                            </p>
                                         </div>
                                     ) : (
-                                        <div className="flex gap-2">
-                                            <input
-                                                type="number"
-                                                value={walletAmountInput}
-                                                onChange={(e) => setWalletAmountInput(e.target.value)}
-                                                placeholder="Amount to use"
-                                                className="flex-1 border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                            />
-                                            <button
-                                                onClick={() => handleApplyWallet()}
-                                                disabled={!walletBalance || walletBalance.balance <= 0 || !walletAmountInput}
-                                                className="bg-zinc-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                            >
-                                                Apply
-                                            </button>
+                                        <div className="space-y-2">
+                                            <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                                                <input
+                                                    type="number"
+                                                    value={walletAmountInput}
+                                                    onChange={(e) => setWalletAmountInput(e.target.value)}
+                                                    placeholder="Amount to use"
+                                                    className="min-w-0 border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                />
+                                                <button
+                                                    onClick={() => handleApplyWallet()}
+                                                    disabled={!walletBalance || walletBalance.balance <= 0 || !walletAmountInput}
+                                                    className="bg-zinc-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                >
+                                                    Apply
+                                                </button>
+                                            </div>
                                             <button
                                                 onClick={handleUseMaxWallet}
                                                 disabled={!walletBalance || walletBalance.balance <= 0}
-                                                className="bg-orange-50 text-orange-600 border border-orange-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-orange-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                                                className="w-full bg-white text-orange-600 border border-orange-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                             >
-                                                Use All
+                                                Use all balance
                                             </button>
                                         </div>
-                                    )}
-
-                                    {walletAppliedAmount > 0 && (
-                                        <p className="text-xs text-green-600 mt-2 text-right">
-                                            -{walletAppliedAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL applied
-                                        </p>
                                     )}
                                 </CardContent>
                             </Card>
@@ -465,7 +763,7 @@ export default function CheckoutView() {
                     </div>
 
                     {/* Order Summary */}
-                    <div className="md:col-span-1">
+                    <div>
                         <div className="sticky top-24 space-y-6">
                             <Card className="border-zinc-200 shadow-sm overflow-hidden">
                                 <CardHeader className="bg-zinc-50 border-b border-zinc-100 py-4">
@@ -473,21 +771,46 @@ export default function CheckoutView() {
                                 </CardHeader>
                                 <CardContent className="p-0">
                                     <div className="max-h-[300px] overflow-y-auto p-4 space-y-4">
-                                        {items.map(item => (
-                                            <div key={item.id} className="flex gap-3">
-                                                <div className="h-12 w-12 bg-zinc-50 rounded-lg relative overflow-hidden shrink-0">
-                                                    {item.imgUrl && <Image src={item.imgUrl} alt={item.productName || ''} fill className="object-cover" />}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex justify-between items-start">
-                                                        <h4 className="text-sm font-medium text-zinc-900 line-clamp-2">{item.productName}</h4>
-                                                        <span className="text-xs font-semibold text-zinc-900">₺{item.price}</span>
+                                        {items.map(item => {
+                                            const detailLines = getCartItemDetailLines(item);
+
+                                            return (
+                                                <div key={item.id} className="flex gap-3">
+                                                    <div className="h-12 w-12 bg-zinc-50 rounded-lg relative overflow-hidden shrink-0">
+                                                        {item.imgUrl && <Image src={item.imgUrl} alt={item.productName || ''} fill className="object-cover" />}
                                                     </div>
-                                                    <div className="text-xs text-zinc-500 mt-1">x {item.qty}</div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex justify-between items-start gap-2">
+                                                            <h4 className="text-sm font-medium text-zinc-900 line-clamp-2">{item.productName}</h4>
+                                                            <span className="shrink-0 text-xs font-semibold text-zinc-900">₺{item.price}</span>
+                                                        </div>
+                                                        <div className="text-xs text-zinc-500 mt-1">x {item.qty}</div>
+                                                        {detailLines.length > 0 && (
+                                                            <div className="mt-1 space-y-0.5">
+                                                                {detailLines.map((line, index) => (
+                                                                    <p key={`${item.id}-detail-${index}`} className="break-words text-xs leading-snug text-zinc-500">
+                                                                        {line}
+                                                                    </p>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
+                                    {targetBranchId && (
+                                        <div className="px-4 pb-4">
+                                            <button
+                                                type="button"
+                                                onClick={() => router.push(`/branches/${targetBranchId}`)}
+                                                className="flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm font-semibold text-zinc-900 transition-colors hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
+                                            >
+                                                <Plus className="h-4 w-4" />
+                                                Add more items
+                                            </button>
+                                        </div>
+                                    )}
                                     <div className="p-4 bg-zinc-50 border-t border-zinc-100 space-y-2 text-sm">
                                         <div className="flex justify-between text-zinc-600">
                                             <span>Subtotal</span>
@@ -532,7 +855,7 @@ export default function CheckoutView() {
 
             {/* Bottom Sticky Action Bar */}
             <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-zinc-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50">
-                <div className="container mx-auto max-w-4xl flex items-center justify-between gap-4">
+                <div className="container mx-auto max-w-6xl flex items-center justify-between gap-4">
                     <div className="hidden sm:block">
                         <div className="text-sm text-zinc-500">Total to Pay</div>
                         <div className="text-xl font-bold text-orange-600">₺{finalTotal.toFixed(2)}</div>
@@ -541,7 +864,7 @@ export default function CheckoutView() {
                     <Button
                         size="lg"
                         className="w-full sm:w-auto min-w-[200px] bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl"
-                        disabled={!selectedAddressId || isProcessing || isAddingAddress}
+                        disabled={!selectedAddress || !selectedAddressHasPhone || isCheckingAddresses || isProcessing || isAddingAddress}
                         onClick={handleCompleteOrder}
                     >
                         {isProcessing ? (
@@ -565,6 +888,45 @@ export default function CheckoutView() {
                     checkAvailablePromotions={checkAvailablePromotions}
                 />
             )}
+
+            {editingAddressId && editingAddress && (
+                <AddressEditModal
+                    address={editingAddress}
+                    onClose={() => setEditingAddressId(null)}
+                    onSuccess={handleAddressEditSuccess}
+                />
+            )}
+        </div>
+    );
+}
+
+function AddressEditModal({ address, onClose, onSuccess }: {
+    address: Address;
+    onClose: () => void;
+    onSuccess: () => Promise<void>;
+}) {
+    return (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-lg">
+                <div className="sticky top-0 z-10 flex items-center justify-between border-b border-zinc-100 bg-white p-4">
+                    <h3 className="text-lg font-bold text-zinc-900">Edit Address</h3>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="rounded-full p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800"
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
+                <div className="p-6">
+                    <AddressForm
+                        initialValues={{ ...address, phoneE164: address.phoneE164 ?? '' }}
+                        addressId={address.id}
+                        onCancel={onClose}
+                        onSuccess={onSuccess}
+                    />
+                </div>
+            </div>
         </div>
     );
 }
@@ -572,12 +934,19 @@ export default function CheckoutView() {
 function CouponListModal({ onClose, onApply, availablePromotions, checkAvailablePromotions }: {
     onClose: () => void;
     onApply: (code: string) => void;
-    availablePromotions: any[];
+    availablePromotions: AvailablePromotion[];
     checkAvailablePromotions: () => Promise<void>;
 }) {
+    const hasLoadedPromotionsRef = useRef(false);
+
     useEffect(() => {
+        if (hasLoadedPromotionsRef.current) {
+            return;
+        }
+
+        hasLoadedPromotionsRef.current = true;
         checkAvailablePromotions();
-    }, []);
+    }, [checkAvailablePromotions]);
 
     return (
         <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
@@ -593,7 +962,7 @@ function CouponListModal({ onClose, onApply, availablePromotions, checkAvailable
                         <p className="text-center text-zinc-500 py-4">No available coupons found.</p>
                     ) : (
                         <div className="space-y-3">
-                            {availablePromotions.map((item: any, idx: number) => (
+                            {availablePromotions.map((item, idx) => (
                                 <div key={idx} className={`p-4 rounded-lg border ${item.applicable ? 'border-green-200 bg-green-50' : 'border-zinc-200 bg-zinc-50 opacity-70'}`}>
                                     <div className="flex justify-between items-start mb-2">
                                         <h4 className="font-bold text-zinc-800">{item.promotion.name}</h4>

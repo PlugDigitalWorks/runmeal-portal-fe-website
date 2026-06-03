@@ -207,14 +207,27 @@ export function CartDrawer() {
                                                     <span className="text-sm text-zinc-500">Subtotal</span>
                                                     <span className="font-bold text-zinc-900">₺{cart.totalCartPrice?.toFixed(2) ?? '0.00'}</span>
                                                 </div>
-                                                <Button className="w-full bg-white border border-zinc-900 text-zinc-900 hover:bg-zinc-50"
-                                                    onClick={() => {
-                                                        closeCart();
-                                                        router.push(`/checkout?cartId=${cartId}`);
-                                                    }}
-                                                >
-                                                    Proceed to Checkout
-                                                </Button>
+                                                <div className="space-y-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        className="w-full border-zinc-300 text-zinc-900 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
+                                                        onClick={() => {
+                                                            closeCart();
+                                                            router.push(`/branches/${cart.branchId}`);
+                                                        }}
+                                                    >
+                                                        <Plus className="h-4 w-4 mr-2" />
+                                                        Add more items
+                                                    </Button>
+                                                    <Button className="w-full bg-white border border-zinc-900 text-zinc-900 hover:bg-zinc-50"
+                                                        onClick={() => {
+                                                            closeCart();
+                                                            router.push(`/checkout?cartId=${cartId}`);
+                                                        }}
+                                                    >
+                                                        Proceed to Checkout
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </div>
                                     );

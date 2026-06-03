@@ -7,15 +7,31 @@ export interface CreateOrderDto {
 
 export interface Order {
   id: string;
+  orderNumber?: string | null;
+  orderNo?: string | null;
+  code?: string | null;
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
   brandId: string;
   branchId: string;
+  branchName?: string | null;
+  branchAddressText?: string | null;
+  branchLogoUrl?: string | null;
   userId: string;
   cartId: string;
   totalPrice: string;
   taxAmount: string;
+  subtotal?: string | number | null;
+  subTotal?: string | number | null;
+  deliveryFee?: string | number | null;
+  discountAmount?: string | number | null;
+  couponCode?: string | null;
+  paymentMethod?: string | null;
+  paymentStatus?: string | null;
+  deliveredAt?: string | null;
+  completedAt?: string | null;
+  cancelledAt?: string | null;
   status: string;
   isActive: boolean;
   userAddressId: string;
@@ -32,6 +48,7 @@ export interface OrderItem {
   orderId: string;
   productId: string;
   productName: string;
+  productImageUrl?: string | null;
   quantity: number;
   unitPrice: string;
   totalPrice: string;
@@ -40,13 +57,32 @@ export interface OrderItem {
   optionsTotal?: number;
   lineTotal?: number;
   options?: Array<{
-    groupId: string;
-    groupName: string;
-    selectedOptions: Array<{
-      optionId: string;
-      optionName: string;
-      priceDelta: number;
+    groupId?: string;
+    groupName?: string;
+    name?: string;
+    selectedOptions?: Array<{
+      optionId?: string;
+      optionName?: string;
+      name?: string;
+      priceDelta?: number | string | null;
+      price?: number | string | null;
     }>;
+    selections?: Array<{
+      optionId?: string;
+      optionName?: string;
+      name?: string;
+      priceDelta?: number | string | null;
+      price?: number | string | null;
+    }>;
+  }> | null;
+  addons?: Array<{
+    id?: string;
+    addonId?: string;
+    name?: string;
+    addonName?: string;
+    price?: number | string | null;
+    priceDelta?: number | string | null;
+    quantity?: number;
   }> | null;
   note?: string | null;
   qty?: number;

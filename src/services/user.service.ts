@@ -15,7 +15,11 @@ export const userService = {
 
   async getAddresses() {
     const response = await api.get<ApiResponse<Address[]>>('/addresses');
-    return response.data.data; 
+    return response.data.data.map(addr => ({
+      ...addr,
+      latitude: addr.latitude ?? (addr.locationGeog?.coordinates ? addr.locationGeog.coordinates[1] : 0),
+      longitude: addr.longitude ?? (addr.locationGeog?.coordinates ? addr.locationGeog.coordinates[0] : 0)
+    }));
   },
 
   async createAddress(data: CreateAddressDto) {

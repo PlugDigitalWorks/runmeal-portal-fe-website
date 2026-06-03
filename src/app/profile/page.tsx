@@ -10,6 +10,16 @@ import { Address } from '@/types/address';
 import { userService } from '@/services/user.service';
 import { AddressForm } from '@/components/address/AddressForm';
 import { Suspense } from 'react';
+import {
+  formatCurrency,
+  formatOrderDate,
+  formatOrderDateTime,
+  getOrderDisplayId,
+  getOrderItemDetailLines,
+  getOrderItemQty,
+  getOrderItemTotalPrice,
+  getOrderItemUnitPrice,
+} from '@/lib/order-display';
 
 function ProfileContent() {
   const router = useRouter();
@@ -104,6 +114,15 @@ function ProfileContent() {
       }
   };
 
+  const openOrderDetails = (order: import('@/services/order.service').Order) => {
+      const params = new URLSearchParams();
+      if (order.branchId) params.set('branchId', order.branchId);
+      if (order.brandId) params.set('brandId', order.brandId);
+
+      const query = params.toString();
+      router.push(`/orders/${order.id}${query ? `?${query}` : ''}`);
+  };
+
   if (isContextLoading && !user) {
        return <div className="min-h-screen flex items-center justify-center pt-20">Loading...</div>;
   }
@@ -137,7 +156,7 @@ function ProfileContent() {
                         <div className="font-medium text-zinc-900 break-all">{user?.email}</div>
                     </div>
                      <div>
-                        <label className="text-xs font-medium text-zinc-500 uppercase">Role</label>
+                        <label className="text-xs font-medium text-zinc-500 uppercase pr-1">Role</label>
                         <div className="inline-flex items-center px-2 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-medium capitalize">
                             {user?.role}
                         </div>
@@ -182,19 +201,20 @@ function ProfileContent() {
                                                     <div className={`p-2 rounded-full bg-zinc-100 text-zinc-500 transition-transform duration-200 ${expandedOrders.has(order.id) ? 'rotate-180' : ''}`}>
                                                         <ChevronDown className="h-4 w-4" />
                                                     </div>
-                                                    <div>
+                                                    <div> 
                                                         <div className="font-medium text-zinc-900">
-                                                            {new Date(order.createdAt).toLocaleDateString()}
+                                                            {formatOrderDateTime(order.createdAt)}
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <div className="font-medium text-zinc-900">
-                                                        ₺{order.totalPrice}
-                                                    </div>
-                                                    <div className="text-xs px-2 py-1 rounded-full bg-zinc-100 text-zinc-600 inline-block capitalize mt-1">
+                                                <div className="text-xs px-2 py-1 rounded-full bg-zinc-100 text-zinc-600 inline-block capitalize mt-1">
                                                         {order.status}
                                                     </div>
+                                                <div className="text-right">
+                                                    <div className="font-medium text-zinc-900">
+                                                        {formatCurrency(order.totalPrice)}
+                                                    </div>
+                                                    
                                                 </div>
                                             </div>
                                             {expandedOrders.has(order.id) && (
@@ -204,19 +224,39 @@ function ProfileContent() {
                                                     ) : orderDetails[order.id] ? (
                                                         <div className="space-y-2">
                                                             {orderDetails[order.id].items.map((item) => (
-                                                                <div key={item.id} className="flex justify-between text-sm">
-                                                                    <div className="text-zinc-600">
-                                                                        <span className="font-medium text-zinc-900">{item.quantity}x</span> {item.productName}
+                                                                <div key={item.id} className="flex justify-between gap-4 text-sm">
+                                                                    <div className="min-w-0 text-zinc-600">
+                                                                        <div>
+                                                                            <span className="font-medium text-zinc-900">{getOrderItemQty(item)}x</span> {item.productName}
+                                                                        </div>
+                                                                        <div className="text-xs text-zinc-500">
+                                                                            Unit: {formatCurrency(getOrderItemUnitPrice(item))}
+                                                                        </div>
+                                                                        {getOrderItemDetailLines(item).map((line) => (
+                                                                            <div key={line} className="text-xs text-zinc-500 leading-relaxed">
+                                                                                {line}
+                                                                            </div>
+                                                                        ))}
                                                                     </div>
-                                                                    <div className="text-zinc-900 font-medium">
-                                                                        ₺{item.totalPrice}
+                                                                    <div className="shrink-0 text-zinc-900 font-medium">
+                                                                        {formatCurrency(getOrderItemTotalPrice(item))}
                                                                     </div>
                                                                 </div>
                                                             ))}
+                                                            <div className="pt-2">
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => openOrderDetails(order)}
+                                                                >
+                                                                    View order details
+                                                                </Button>
+                                                            </div>
                                                             <div className="border-t border-zinc-100 mt-2 pt-2 flex justify-between items-center">
                                                                 <span className="text-sm font-medium text-zinc-900">Total</span>
-                                                                <span className="text-base font-bold text-orange-600">₺{orderDetails[order.id].totalPrice}</span>
+                                                                <span className="text-base font-bold text-orange-600">{formatCurrency(orderDetails[order.id].totalPrice)}</span>
                                                             </div>
+                                                            <div className="text-xs text-zinc-500">Order #{getOrderDisplayId(orderDetails[order.id])}</div>
                                                         </div>
                                                     ) : (
                                                         <div className="text-sm text-red-500">Failed to load details</div>
