@@ -69,6 +69,9 @@ export function CartDetail({ cart, branch, onClose }: CartDetailProps) {
                                             <h4 className="text-sm font-medium text-zinc-900 line-clamp-2">{item.productName}</h4>
                                         </div>
                                         <p className="text-xs text-zinc-500 mb-3">Portion</p>
+                                        {item.note ? (
+                                            <p className="mb-3 break-words text-xs text-zinc-500">Note: {item.note}</p>
+                                        ) : null}
                                         
                                         <div className="flex justify-between items-center">
                                             <span className="font-semibold text-zinc-900">

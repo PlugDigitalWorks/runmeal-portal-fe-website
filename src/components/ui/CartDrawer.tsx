@@ -169,6 +169,11 @@ export function CartDrawer() {
                                                                     ))}
                                                                 </div>
                                                             )}
+                                                            {item.note ? (
+                                                                <p className="mt-1 break-words text-xs text-zinc-500">
+                                                                    Note: {item.note}
+                                                                </p>
+                                                            ) : null}
                                                             <div className="flex items-center gap-2 mt-2">
                                                                 <div className="flex items-center gap-1 bg-zinc-100 rounded-lg p-0.5">
                                                                     <button

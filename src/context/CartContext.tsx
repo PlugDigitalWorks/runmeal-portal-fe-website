@@ -3,10 +3,52 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { cartService } from '@/services/cart.service';
 import { userService } from '@/services/user.service';
-import { Cart, CartItem, CartItemOptionGroup } from '@/types/cart';
+import { Cart, CartItemOptionGroup } from '@/types/cart';
+import { Product } from '@/types/product';
 import { useBranch } from './BranchContext';
 import { useUser } from './UserContext';
 import { toast } from 'sonner';
+
+type CartOptionInput = {
+  groupId?: string;
+  optionId?: string;
+  optionIds?: string[];
+  valueId?: string;
+  name?: string;
+  valueName?: string;
+  price?: number;
+};
+
+type CartOptionDto = {
+  groupId: string;
+  optionId?: string;
+  optionIds?: string[];
+};
+
+type CartAddonInput = { id: string; name?: string; price?: number };
+
+export type AvailablePromotion = {
+  applicable: boolean;
+  unapplicableReason?: string;
+  promotion: {
+    name: string;
+    description?: string;
+    couponCode: string;
+  };
+};
+
+type ApiError = {
+  response?: {
+    data?: {
+      message?: string | string[];
+    };
+  };
+};
+
+const getApiErrorMessage = (error: unknown, fallback: string) => {
+  const message = (error as ApiError).response?.data?.message;
+  return Array.isArray(message) ? message.join(' ') : message || fallback;
+};
 
 // Simplified Cart Item for Guest (Local Storage)
 interface GuestCartItem {
@@ -28,17 +70,17 @@ interface CartContextType {
   addToCart: (
     productId: string,
     quantity: number,
-    options?: { groupId?: string; optionId?: string; optionIds?: string[]; valueId?: string; name?: string; valueName?: string; price?: number }[],
-    addons?: { id: string; name?: string; price?: number }[],
+    options?: CartOptionInput[],
+    addons?: CartAddonInput[],
     notes?: string,
-    productDetails?: any
+    productDetails?: Product
   ) => Promise<void>;
   removeFromCart: (itemId: string) => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   applyCoupon: (couponCode: string) => Promise<void>;
   removeCoupon: () => Promise<void>;
   cartTotal: number;
-  availablePromotions: any[];
+  availablePromotions: AvailablePromotion[];
   checkAvailablePromotions: () => Promise<void>;
   refreshCart: () => Promise<void>;
   isCartOpen: boolean;
@@ -65,7 +107,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedCartId, setSelectedCartId] = useState<string | undefined>(undefined);
-  const [availablePromotions, setAvailablePromotions] = useState<any[]>([]);
+  const [availablePromotions, setAvailablePromotions] = useState<AvailablePromotion[]>([]);
   const hasSyncedRef = useRef(false);
 
   const isAuthenticated = !!user;
@@ -204,6 +246,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
               productId: item.productId,
               qty: item.quantity,
               options,
+              note: item.notes?.trim() || undefined,
             }, item.branchId || selectedBranch?.id || fallbackBranchId);
           } catch (e) {
             console.error(`Failed to sync item ${item.productId}`, e);
@@ -234,10 +277,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const addToCart = async (
     productId: string,
     quantity: number,
-    options?: { groupId?: string; optionId?: string; optionIds?: string[]; valueId?: string; name?: string; valueName?: string; price?: number }[],
-    addons?: { id: string; name?: string; price?: number }[],
+    options?: CartOptionInput[],
+    addons?: CartAddonInput[],
     notes?: string,
-    productDetails?: any
+    productDetails?: Product
   ) => {
     if (isAuthenticated) {
       if (!selectedBranch?.id) {
@@ -247,28 +290,35 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
       setIsLoading(true);
       try {
-        let optionsDto: any[] | undefined;
+        let optionsDto: CartOptionDto[] | undefined;
 
         if (options && options.length > 0 && 'groupId' in options[0]) {
-          optionsDto = options;
+          optionsDto = options
+            .filter((option): option is CartOptionDto => Boolean(option.groupId))
+            .map((option) => ({
+              groupId: option.groupId,
+              optionId: option.optionId,
+              optionIds: option.optionIds,
+            }));
         } else {
-          optionsDto = options?.map(o => ({
+          optionsDto = options?.filter((option) => Boolean(option.optionId && option.valueId)).map(o => ({
             groupId: o.optionId,
             optionId: o.valueId
-          }));
+          })) as CartOptionDto[] | undefined;
         }
 
         await cartService.addItem({
           productId,
           qty: quantity,
-          options: optionsDto
+          options: optionsDto,
+          note: notes?.trim() || undefined,
         }, selectedBranch.id);
 
         toast.success('Item added to cart');
         await refreshCarts();
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.error("Add to cart failed", e);
-        toast.error(e.response?.data?.message || 'Failed to add item to cart');
+        toast.error(getApiErrorMessage(e, 'Failed to add item to cart'));
       } finally {
         setIsLoading(false);
       }
@@ -315,12 +365,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
               });
             }
           } else {
-            const legacyOpt = opt as any;
-            groupId = legacyOpt.optionId;
-            const singleOptionId = legacyOpt.valueId;
-            groupName = legacyOpt.name || 'Option';
-            optionName = legacyOpt.valueName || 'Value';
-            priceDelta = legacyOpt.price || 0;
+            groupId = opt.optionId || '';
+            const singleOptionId = opt.valueId || '';
+            groupName = opt.name || 'Option';
+            optionName = opt.valueName || 'Value';
+            priceDelta = opt.price || 0;
 
             if (!groups[groupId]) {
               groups[groupId] = {
@@ -346,7 +395,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const existing = updated.findIndex(i =>
         i.productId === productId &&
         JSON.stringify(i.options) === JSON.stringify(nestedOptions) &&
-        JSON.stringify(i.addons) === JSON.stringify(addons)
+        JSON.stringify(i.addons) === JSON.stringify(addons) &&
+        (i.notes || '') === (notes?.trim() || '')
       );
 
       if (existing >= 0) {
@@ -355,13 +405,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           updated[existing].branchId = selectedBranch.id;
         }
       } else {
+        const productPrice = Number(productDetails?.price);
+
         updated.push({
           productId,
           quantity,
           options: nestedOptions,
           addons,
+          notes: notes?.trim() || undefined,
           productName: productDetails?.name,
-          price: productDetails?.price,
+          price: Number.isFinite(productPrice) ? productPrice : undefined,
           branchId: selectedBranch?.id
         });
       }
@@ -461,9 +514,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       );
       toast.success('Coupon applied successfully');
       await refreshCarts();
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Apply coupon failed", e);
-      toast.error(e.response?.data?.message || 'Failed to apply coupon');
+      toast.error(getApiErrorMessage(e, 'Failed to apply coupon'));
       throw e;
     } finally {
       setIsLoading(false);
@@ -478,9 +531,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       await cartService.removePromotion(cartId);
       toast.success('Coupon removed');
       await refreshCarts();
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Remove coupon failed", e);
-      toast.error(e.response?.data?.message || 'Failed to remove coupon');
+      toast.error(getApiErrorMessage(e, 'Failed to remove coupon'));
     } finally {
       setIsLoading(false);
     }

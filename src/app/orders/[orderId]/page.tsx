@@ -181,6 +181,15 @@ export default function OrderDetailPage() {
                         {order.phone ? <p className="text-sm text-zinc-600">{order.phone}</p> : null}
                       </div>
                     </div>
+                    {order.note ? (
+                      <div className="flex gap-3">
+                        <ReceiptText className="mt-0.5 h-5 w-5 shrink-0 text-zinc-500" />
+                        <div>
+                          <p className="text-sm text-zinc-500">Sipariş notu:</p>
+                          <p className="text-sm font-medium text-zinc-950">{order.note}</p>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </div>

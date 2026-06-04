@@ -7,6 +7,7 @@ export interface CartItem {
   qty: number;
   options?: CartItemOptionGroup[];
   addons?: { name: string; price?: number }[];
+  note?: string | null;
 }
 
 export interface CartItemOptionGroup {
@@ -52,6 +53,7 @@ export interface AddItemDto {
   productId: string;
   qty?: number;
   options?: { groupId: string; optionId?: string; optionIds?: string[] }[];
+  note?: string;
 }
 
 export interface SetQtyDto {

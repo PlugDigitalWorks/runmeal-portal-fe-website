@@ -29,6 +29,7 @@ export interface Order {
   couponCode?: string | null;
   paymentMethod?: string | null;
   paymentStatus?: string | null;
+  note?: string | null;
   deliveredAt?: string | null;
   completedAt?: string | null;
   cancelledAt?: string | null;

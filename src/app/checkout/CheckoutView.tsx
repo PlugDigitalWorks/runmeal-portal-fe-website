@@ -6,11 +6,11 @@ import { useCart } from '@/context/CartContext';
 import { useBranch } from '@/context/BranchContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
-import { AlertCircle, CheckCircle2, Edit2, Loader2, MapPin, Plus, Ticket, User as UserIcon, Wallet, X } from 'lucide-react';
+import { AlertCircle, Banknote, CheckCircle2, CreditCard, Edit2, Loader2, MapPin, MessageSquareText, Plus, Ticket, User as UserIcon, Wallet, X, type LucideIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { paymentService } from '@/services/payment.service';
+import { paymentService, type PaymentMethod } from '@/services/payment.service';
 import { userService } from '@/services/user.service';
 import { walletService, WalletBalance } from '@/services/wallet.service';
 import { branchService } from '@/services/branch.service';
@@ -35,6 +35,32 @@ type AvailablePromotion = {
         couponCode: string;
     };
 };
+
+const PAYMENT_METHOD_OPTIONS: Array<{
+    value: PaymentMethod;
+    label: string;
+    description: string;
+    Icon: LucideIcon;
+}> = [
+    {
+        value: 'ONLINE_CARD',
+        label: 'Online card',
+        description: 'Pay securely now',
+        Icon: CreditCard,
+    },
+    {
+        value: 'CASH',
+        label: 'Cash',
+        description: 'Pay at delivery',
+        Icon: Banknote,
+    },
+    {
+        value: 'CARD_ON_DELIVERY',
+        label: 'Card on delivery',
+        description: 'Pay by POS at delivery',
+        Icon: CreditCard,
+    },
+];
 
 type CartWithBranchVariants = Cart & {
     branch?: { id?: string | null } | null;
@@ -105,7 +131,9 @@ const getCartItemDetailLines = (item: CartItem) => {
         `${addon.name}${formatPriceDelta(addon.price)}`,
     );
 
-    return [...optionLines, ...addonLines];
+    const noteLine = item.note?.trim() ? [`Note: ${item.note.trim()}`] : [];
+
+    return [...optionLines, ...addonLines, ...noteLine];
 };
 
 const getApiErrorMessage = (error: unknown) => {
@@ -147,6 +175,8 @@ export default function CheckoutView() {
     const router = useRouter();
 
     const [selectedAddressId, setSelectedAddressId] = useState<string>('');
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>('ONLINE_CARD');
+    const [orderNote, setOrderNote] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [isAddingAddress, setIsAddingAddress] = useState(false);
     const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
@@ -410,9 +440,10 @@ export default function CheckoutView() {
             const cartId = selectedCart.cartId || selectedCart.id || '';
             const paymentResponse = await paymentService.initializePayment(
                 cartId,
-                'ONLINE_CARD',
+                selectedPaymentMethod,
                 'DELIVERY',
-                walletAppliedAmount > 0 ? walletAppliedAmount : undefined
+                walletAppliedAmount > 0 ? walletAppliedAmount : undefined,
+                orderNote
             );
 
             if (paymentResponse.paymentUrl) {
@@ -611,6 +642,64 @@ export default function CheckoutView() {
                                     <label className="text-xs font-semibold text-zinc-500 uppercase">Phone</label>
                                     <div className="text-zinc-900 font-medium">{user.phoneNumber || '-'}</div>
                                 </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Payment Method */}
+                        <Card className="border-zinc-200 shadow-sm">
+                            <CardHeader className="pb-3 border-b border-zinc-100">
+                                <CardTitle className="flex items-center gap-2 text-lg">
+                                    <CreditCard className="text-orange-600 h-5 w-5" />
+                                    Payment Method
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-4">
+                                <div className="grid gap-3 sm:grid-cols-3">
+                                    {PAYMENT_METHOD_OPTIONS.map(({ value, label, description, Icon }) => {
+                                        const isSelected = selectedPaymentMethod === value;
+
+                                        return (
+                                            <button
+                                                key={value}
+                                                type="button"
+                                                onClick={() => setSelectedPaymentMethod(value)}
+                                                className={`flex min-h-24 flex-col items-start justify-between rounded-lg border-2 p-4 text-left transition-colors ${isSelected
+                                                        ? 'border-orange-600 bg-orange-50/60 text-orange-700'
+                                                        : 'border-zinc-200 bg-white text-zinc-700 hover:border-orange-200 hover:bg-orange-50/40'
+                                                    }`}
+                                            >
+                                                <div className="flex w-full items-center justify-between gap-2">
+                                                    <Icon className={`h-5 w-5 ${isSelected ? 'text-orange-600' : 'text-zinc-500'}`} />
+                                                    <span className={`h-4 w-4 rounded-full border ${isSelected ? 'border-orange-600 bg-orange-600 shadow-[inset_0_0_0_3px_white]' : 'border-zinc-300'}`} />
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm font-semibold text-zinc-900">{label}</div>
+                                                    <div className="mt-1 text-xs leading-snug text-zinc-500">{description}</div>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Order Note */}
+                        <Card className="border-zinc-200 shadow-sm">
+                            <CardHeader className="pb-3 border-b border-zinc-100">
+                                <CardTitle className="flex items-center gap-2 text-lg">
+                                    <MessageSquareText className="text-orange-600 h-5 w-5" />
+                                    Order Note
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-4">
+                                <textarea
+                                    value={orderNote}
+                                    onChange={(event) => setOrderNote(event.target.value)}
+                                    maxLength={1000}
+                                    rows={4}
+                                    placeholder="Leave at reception, call when outside..."
+                                    className="w-full resize-none rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                                />
                             </CardContent>
                         </Card>
 

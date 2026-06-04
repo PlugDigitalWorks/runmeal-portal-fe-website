@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Product, OptionGroup, ProductOptionGroupType } from '@/types/product';
 import { useBranch } from '@/context/BranchContext';
 import { catalogService } from '@/services/catalog.service';
+import { formatCurrencyAmount, getCurrencySymbol } from '@/lib/currency';
 import { X, Minus, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -29,6 +30,7 @@ interface ProductDetailModalProps {
         quantity: number,
         options: CartOptionSelection[],
         addons: CartAddonSelection[],
+        note?: string,
     ) => void;
 }
 
@@ -36,6 +38,8 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
     const { selectedBranch } = useBranch();
     const [quantity, setQuantity] = useState(1);
     const [selectedAddons, setSelectedAddons] = useState<Record<string, boolean>>({});
+    const [productNote, setProductNote] = useState('');
+    const [currencySymbol, setCurrencySymbol] = useState(getCurrencySymbol(product));
 
     // Option Groups Logic
     const [optionGroups, setOptionGroups] = useState<OptionGroup[]>([]);
@@ -46,6 +50,8 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
         if (isOpen && product) {
             setQuantity(1);
             setSelectedAddons({});
+            setProductNote('');
+            setCurrencySymbol(getCurrencySymbol(product));
             setSelections({});
             setOptionGroups([]);
 
@@ -60,6 +66,7 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
                         if (fullProduct && fullProduct.optionGroups) {
                             groups = fullProduct.optionGroups;
                         }
+                        setCurrencySymbol(getCurrencySymbol(fullProduct || product));
                     } catch (error) {
                         console.error("Failed to load product options", error);
                         toast.error("Failed to load product options");
@@ -93,7 +100,8 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
 
     if (!isOpen || !product) return null;
 
-    const basePrice = Number(product.discountedPrice || product.price);
+    const hasDiscountedPrice = product.discountedPrice !== undefined && product.discountedPrice !== null;
+    const basePrice = Number(hasDiscountedPrice ? product.discountedPrice : product.price);
 
     const calculateTotal = () => {
         let total = basePrice;
@@ -194,7 +202,9 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
             price: a.price
         })) || [];
 
-        onAddToCart(product, quantity, optionsToSend, addonsToSend);
+        const trimmedNote = productNote.trim();
+
+        onAddToCart(product, quantity, optionsToSend, addonsToSend, trimmedNote || undefined);
         onClose();
     };
 
@@ -226,8 +236,17 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
                     <div>
                         <h2 className="text-2xl font-bold text-zinc-800">{product.name}</h2>
                         <div className="flex items-center gap-2 mt-1">
-                            {product.discountedPrice ? <span className="text-xl font-bold text-orange-600">₺{Number(product.discountedPrice).toFixed(2)}</span> :                             <span className="text-xl font-bold text-orange-600">₺{Number(product.price).toFixed(2)}</span>}
-                            {product.discountedPrice && <span className="text-sm text-zinc-400 line-through">₺{Number(product.price).toFixed(2)}</span>}
+                            <span className="text-xl font-bold text-orange-600">
+                                {formatCurrencyAmount(
+                                    hasDiscountedPrice ? product.discountedPrice : product.price,
+                                    currencySymbol,
+                                )}
+                            </span>
+                            {hasDiscountedPrice && (
+                                <span className="text-sm text-zinc-400 line-through">
+                                    {formatCurrencyAmount(product.price, currencySymbol)}
+                                </span>
+                            )}
                         </div>
                         <p className="mt-2 text-zinc-600 text-sm leading-relaxed">{product.description}</p>
                     </div>
@@ -286,7 +305,7 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
                                                 </div>
                                                 <div className="font-medium text-sm">
                                                     {opt.priceDelta > 0 ? (
-                                                        <span className="text-zinc-600">+₺{opt.priceDelta.toFixed(2)}</span>
+                                                        <span className="text-zinc-600">+{formatCurrencyAmount(opt.priceDelta, currencySymbol)}</span>
                                                     ) : (
                                                         <span className="text-orange-600 font-bold">Free</span>
                                                     )}
@@ -316,12 +335,27 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
                                             />
                                             <span className="text-zinc-700">{addon.name}</span>
                                         </div>
-                                        <span className="text-sm font-medium text-zinc-600">+₺{addon.price.toFixed(2)}</span>
+                                        <span className="text-sm font-medium text-zinc-600">+{formatCurrencyAmount(addon.price, currencySymbol)}</span>
                                     </label>
                                 ))}
                             </div>
                         </div>
                     )}
+
+                    <div className="space-y-2 pt-4 border-t border-zinc-100">
+                        <label htmlFor="product-note" className="text-sm font-semibold text-zinc-800">
+                            Product note
+                        </label>
+                        <textarea
+                            id="product-note"
+                            value={productNote}
+                            onChange={(event) => setProductNote(event.target.value)}
+                            maxLength={1000}
+                            rows={3}
+                            placeholder="Less spicy, no onions..."
+                            className="w-full resize-none rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                        />
+                    </div>
                 </div>
 
                 {/* Footer Actions */}
@@ -344,7 +378,7 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
                         </div>
                         <div className="text-right">
                             <div className="text-xs text-zinc-400 font-medium uppercase tracking-wide">Total Amount</div>
-                            <div className="text-2xl font-bold text-orange-600">₺{calculateTotal().toFixed(2)}</div>
+                            <div className="text-2xl font-bold text-orange-600">{formatCurrencyAmount(calculateTotal(), currencySymbol)}</div>
                         </div>
                     </div>
 
