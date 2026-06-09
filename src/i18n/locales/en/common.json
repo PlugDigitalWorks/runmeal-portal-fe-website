@@ -219,7 +219,20 @@
     "empty": "Your cart is empty",
     "loading": "Loading...",
     "deliveryInfo": "30-45 min • Delivery: ₺0",
-    "proceedToCheckout": "Proceed to Checkout"
+    "proceedToCheckout": "Proceed to Checkout",
+    "toast": {
+      "selectBranch": "Please select a branch before adding items to cart.",
+      "itemAdded": "Item added to cart",
+      "addFailed": "Failed to add item to cart",
+      "removeFailed": "Failed to remove item",
+      "updateFailed": "Failed to update quantity",
+      "cleared": "Cart cleared",
+      "clearFailed": "Failed to clear cart",
+      "couponApplied": "Coupon applied successfully",
+      "couponApplyFailed": "Failed to apply coupon",
+      "couponRemoved": "Coupon removed",
+      "couponRemoveFailed": "Failed to remove coupon"
+    }
   },
   "address": {
     "country": "Country",
@@ -233,6 +246,9 @@
     "cancel": "Cancel",
     "updateAddress": "Update Address",
     "saveAddress": "Save Address",
+    "selectCountry": "Select Country",
+    "selectOption": "Select {{label}}",
+    "enterOption": "Enter {{label}}",
     "validation": {
       "countryRequired": "Country is required",
       "districtRequired": "District/City is required",
@@ -248,5 +264,68 @@
     "saveFailed": "Failed to save address",
     "saveModalTitle": "Save Delivery Address",
     "saveModalDescription": "Please save this address to continue adding items to your cart."
+  },
+  "common": {
+    "viewCart": "View Cart",
+    "total": "Total",
+    "searchAddress": "Search for a delivery address..."
+  },
+  "home": {
+    "heroTitlePrefix": "Order from the Best ",
+    "heroTitleHighlight": "Restaurants",
+    "heroTitleSuffix": "",
+    "heroSubtitle": "Hungry? Order food from the best local restaurants. Delivered in minutes.",
+    "deliveringTo": "Delivering to:",
+    "active": "(Active)",
+    "temporary": "(Temporary)",
+    "nearbyRestaurants": "Nearby Restaurants",
+    "metersAway": "{{distance}}m away",
+    "kmAway": "{{distance}}km away",
+    "noRestaurants": "No restaurants found nearby",
+    "noRestaurantsHelp": "We currently don't have any branches serving your location. Try changing your address."
+  },
+  "orders": {
+    "back": "Back",
+    "loading": "Loading order details...",
+    "loadError": "Order details could not be loaded.",
+    "orderNo": "Order #{{id}}",
+    "deliveredAt": "Delivered on {{date}}",
+    "orderedAt": "Ordered on {{date}}",
+    "orderedFrom": "Ordered from:",
+    "deliveredTo": "Delivered to:",
+    "orderNote": "Order note:",
+    "orderSummary": "Order summary",
+    "unit": "Unit",
+    "subtotal": "Subtotal",
+    "deliveryFee": "Delivery Fee",
+    "free": "Free",
+    "discount": "Discount",
+    "taxIncluded": "Tax included",
+    "coupon": "Coupon",
+    "total": "Total",
+    "paymentMethod": "Payment method"
+  },
+  "verifyEmail": {
+    "verifyingTitle": "Verifying Email...",
+    "verifyingText": "Please wait while we verify your email address.",
+    "successTitle": "Email Verified!",
+    "successText": "Your email has been successfully verified. You can now access all features of your account.",
+    "continueToLogin": "Continue to Login",
+    "failedTitle": "Verification Failed",
+    "backToLogin": "Back to Login",
+    "contactSupport": "Contact Support",
+    "failedDefault": "Verification failed. Token may be invalid or expired.",
+    "failedGeneric": "Verification failed.",
+    "noToken": "No verification token found."
+  },
+  "payment": {
+    "successTitle": "Payment Successful!",
+    "successText": "Thank you for your order. We have received your payment and your order is being prepared.",
+    "viewMyOrders": "View My Orders",
+    "backToHome": "Back to Home",
+    "failedTitle": "Payment Failed",
+    "failedText": "Something went wrong during the payment process. Please try again.",
+    "tryAgain": "Try Again",
+    "contactSupport": "Contact Support"
   }
 }

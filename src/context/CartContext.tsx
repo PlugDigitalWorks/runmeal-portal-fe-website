@@ -8,6 +8,7 @@ import { Product } from '@/types/product';
 import { useBranch } from './BranchContext';
 import { useUser } from './UserContext';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 type CartOptionInput = {
   groupId?: string;
@@ -99,6 +100,7 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const { user, refreshAddresses } = useUser();
   const { selectedBranch } = useBranch();
   const [cart, setCart] = useState<Cart | null>(null);
@@ -284,7 +286,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   ) => {
     if (isAuthenticated) {
       if (!selectedBranch?.id) {
-        toast.error('Please select a branch before adding items to cart.');
+        toast.error(t('cart.toast.selectBranch'));
         return;
       }
 
@@ -314,11 +316,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           note: notes?.trim() || undefined,
         }, selectedBranch.id);
 
-        toast.success('Item added to cart');
+        toast.success(t('cart.toast.itemAdded'));
         await refreshCarts();
       } catch (e: unknown) {
         console.error("Add to cart failed", e);
-        toast.error(getApiErrorMessage(e, 'Failed to add item to cart'));
+        toast.error(getApiErrorMessage(e, t('cart.toast.addFailed')));
       } finally {
         setIsLoading(false);
       }
@@ -425,7 +427,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('guest_branch', JSON.stringify(selectedBranch));
       }
 
-      toast.success('Item added to cart');
+      toast.success(t('cart.toast.itemAdded'));
     }
   };
 
@@ -437,7 +439,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         await refreshCarts();
       } catch (e) {
         console.error("Remove failed", e);
-        toast.error('Failed to remove item');
+        toast.error(t('cart.toast.removeFailed'));
       } finally {
         setIsLoading(false);
       }
@@ -459,7 +461,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         await refreshCarts();
       } catch (e) {
         console.error("Update qty failed", e);
-        toast.error('Failed to update quantity');
+        toast.error(t('cart.toast.updateFailed'));
       } finally {
         setIsLoading(false);
       }
@@ -487,10 +489,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       try {
         await cartService.clearCart(cartId);
         await refreshCarts();
-        toast.success('Cart cleared');
+        toast.success(t('cart.toast.cleared'));
       } catch (e) {
         console.error("Clear cart failed", e);
-        toast.error('Failed to clear cart');
+        toast.error(t('cart.toast.clearFailed'));
       } finally {
         setIsLoading(false);
       }
@@ -512,11 +514,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         cart!.totalCartPrice || 0,
         'DELIVERY'
       );
-      toast.success('Coupon applied successfully');
+      toast.success(t('cart.toast.couponApplied'));
       await refreshCarts();
     } catch (e: unknown) {
       console.error("Apply coupon failed", e);
-      toast.error(getApiErrorMessage(e, 'Failed to apply coupon'));
+      toast.error(getApiErrorMessage(e, t('cart.toast.couponApplyFailed')));
       throw e;
     } finally {
       setIsLoading(false);
@@ -529,11 +531,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       await cartService.removePromotion(cartId);
-      toast.success('Coupon removed');
+      toast.success(t('cart.toast.couponRemoved'));
       await refreshCarts();
     } catch (e: unknown) {
       console.error("Remove coupon failed", e);
-      toast.error(getApiErrorMessage(e, 'Failed to remove coupon'));
+      toast.error(getApiErrorMessage(e, t('cart.toast.couponRemoveFailed')));
     } finally {
       setIsLoading(false);
     }

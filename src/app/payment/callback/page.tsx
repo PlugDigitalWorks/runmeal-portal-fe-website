@@ -6,8 +6,10 @@ import { CheckCircle2, XCircle, Loader2, ArrowRight, ShoppingBag } from 'lucide-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useCart } from '@/context/CartContext';
+import { useTranslation } from 'react-i18next';
 
 function PaymentCallbackContent() {
+    const { t } = useTranslation();
     const searchParams = useSearchParams();
     const router = useRouter();
     const { refreshCarts } = useCart();
@@ -36,25 +38,25 @@ function PaymentCallbackContent() {
                                 <CheckCircle2 className="h-10 w-10 text-green-600" />
                             </div>
                             
-                            <h1 className="text-2xl font-bold text-zinc-900 mb-2">Payment Successful!</h1>
+                            <h1 className="text-2xl font-bold text-zinc-900 mb-2">{t('payment.successTitle')}</h1>
                             <p className="text-zinc-500 mb-8">
-                                Thank you for your order. We have received your payment and your order is being prepared.
+                                {t('payment.successText')}
                             </p>
 
                             <div className="w-full space-y-3">
-                                <Button 
+                                <Button
                                     className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold h-11"
                                     onClick={() => router.push('/profile?tab=orders')}
                                 >
-                                    View My Orders
+                                    {t('payment.viewMyOrders')}
                                     <ArrowRight className="ml-2 h-4 w-4" />
                                 </Button>
-                                <Button 
-                                    variant="outline" 
+                                <Button
+                                    variant="outline"
                                     className="w-full h-11 border-zinc-200"
                                     onClick={() => router.push('/')}
                                 >
-                                    Back to Home
+                                    {t('payment.backToHome')}
                                 </Button>
                             </div>
                         </>
@@ -64,24 +66,24 @@ function PaymentCallbackContent() {
                                 <XCircle className="h-10 w-10 text-red-600" />
                             </div>
                             
-                            <h1 className="text-2xl font-bold text-zinc-900 mb-2">Payment Failed</h1>
+                            <h1 className="text-2xl font-bold text-zinc-900 mb-2">{t('payment.failedTitle')}</h1>
                             <p className="text-zinc-500 mb-8">
-                                {message || 'Something went wrong during the payment process. Please try again.'}
+                                {message || t('payment.failedText')}
                             </p>
 
                             <div className="w-full space-y-3">
-                                <Button 
+                                <Button
                                     className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold h-11"
                                     onClick={() => router.push('/checkout')} // Maybe send them back to checkout to retry?
                                 >
-                                    Try Again
+                                    {t('payment.tryAgain')}
                                 </Button>
-                                <Button 
-                                    variant="outline" 
+                                <Button
+                                    variant="outline"
                                     className="w-full h-11 border-zinc-200"
                                     onClick={() => router.push('/contact')}
                                 >
-                                    Contact Support
+                                    {t('payment.contactSupport')}
                                 </Button>
                             </div>
                         </>

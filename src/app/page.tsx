@@ -8,8 +8,10 @@ import { useUser } from '@/context/UserContext';
 import { branchService } from '@/services/branch.service';
 import { Branch } from '@/types/branch';
 import { MapPin, Building2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function Home() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { user, addresses, isLoading: isContextLoading, tempAddress } = useUser();
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -83,18 +85,18 @@ export default function Home() {
            <div className="relative z-20 container mx-auto px-4 h-full flex flex-col justify-center">
              <div className="max-w-xl space-y-4">
                  <h1 className="text-4xl md:text-6xl font-bold text-white leading-tight">
-                    Order from the Best <span className="text-orange-500">Restaurants</span>
+                    {t('home.heroTitlePrefix')}<span className="text-orange-500">{t('home.heroTitleHighlight')}</span>{t('home.heroTitleSuffix')}
                  </h1>
                  <p className="text-zinc-300 text-lg md:text-xl max-w-md">
-                    Hungry? Order food from the best local restaurants. Delivered in minutes.
+                    {t('home.heroSubtitle')}
                  </p>
                  {(activeAddress || tempAddress) && (
                      <div className="flex items-center gap-2 text-orange-200 bg-black/30 w-fit px-4 py-2 rounded-lg backdrop-blur-sm">
                          <MapPin className="h-4 w-4" />
                          <span className="text-sm">
-                             Delivering to: {tempAddress ? tempAddress.formattedAddress : activeAddress?.street} 
-                             {activeAddress && !tempAddress && ' (Active)'}
-                             {tempAddress && ' (Temporary)'}
+                             {t('home.deliveringTo')} {tempAddress ? tempAddress.formattedAddress : activeAddress?.street}
+                             {activeAddress && !tempAddress && ` ${t('home.active')}`}
+                             {tempAddress && ` ${t('home.temporary')}`}
                          </span>
                      </div>
                  )}
@@ -104,7 +106,7 @@ export default function Home() {
 
         {/* Branches Section */}
         <section className="container mx-auto px-4 py-12">
-            <h2 className="text-2xl font-bold text-zinc-900 mb-6">Nearby Restaurants</h2>
+            <h2 className="text-2xl font-bold text-zinc-900 mb-6">{t('home.nearbyRestaurants')}</h2>
             
             {isLoadingBranches ? (
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -144,9 +146,9 @@ export default function Home() {
                                     {/* Phone removed as it is not in the response */}
                                     {branch.distanceM && (
                                         <div className="text-xs font-medium text-orange-600 mt-2">
-                                            {branch.distanceM < 1000 
-                                                ? `${Math.round(branch.distanceM)}m away` 
-                                                : `${(branch.distanceM / 1000).toFixed(1)}km away`}
+                                            {branch.distanceM < 1000
+                                                ? t('home.metersAway', { distance: Math.round(branch.distanceM) })
+                                                : t('home.kmAway', { distance: (branch.distanceM / 1000).toFixed(1) })}
                                         </div>
                                     )}
                                 </div>
@@ -159,9 +161,9 @@ export default function Home() {
                     <div className="mx-auto w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mb-4">
                         <MapPin className="h-8 w-8 text-zinc-400" />
                     </div>
-                    <h3 className="text-lg font-medium text-zinc-900">No restaurants found nearby</h3>
+                    <h3 className="text-lg font-medium text-zinc-900">{t('home.noRestaurants')}</h3>
                     <p className="text-zinc-500 max-w-sm mx-auto mt-2">
-                        We currently don&apos;t have any branches serving your location. Try changing your address.
+                        {t('home.noRestaurantsHelp')}
                     </p>
                 </div>
             )}

@@ -219,7 +219,20 @@
     "empty": "Sepetiniz boş",
     "loading": "Yükleniyor...",
     "deliveryInfo": "30-45 dk • Teslimat: ₺0",
-    "proceedToCheckout": "Ödemeye Geç"
+    "proceedToCheckout": "Ödemeye Geç",
+    "toast": {
+      "selectBranch": "Sepete ürün eklemeden önce lütfen bir şube seçin.",
+      "itemAdded": "Ürün sepete eklendi",
+      "addFailed": "Ürün sepete eklenemedi",
+      "removeFailed": "Ürün kaldırılamadı",
+      "updateFailed": "Adet güncellenemedi",
+      "cleared": "Sepet temizlendi",
+      "clearFailed": "Sepet temizlenemedi",
+      "couponApplied": "Kupon başarıyla uygulandı",
+      "couponApplyFailed": "Kupon uygulanamadı",
+      "couponRemoved": "Kupon kaldırıldı",
+      "couponRemoveFailed": "Kupon kaldırılamadı"
+    }
   },
   "address": {
     "country": "Ülke",
@@ -233,6 +246,9 @@
     "cancel": "İptal",
     "updateAddress": "Adresi Güncelle",
     "saveAddress": "Adresi Kaydet",
+    "selectCountry": "Ülke Seçin",
+    "selectOption": "{{label}} Seçin",
+    "enterOption": "{{label}} girin",
     "validation": {
       "countryRequired": "Ülke gereklidir",
       "districtRequired": "İlçe/Şehir gereklidir",
@@ -248,5 +264,68 @@
     "saveFailed": "Adres kaydedilemedi",
     "saveModalTitle": "Teslimat Adresini Kaydet",
     "saveModalDescription": "Sepetinize ürün eklemeye devam etmek için lütfen bu adresi kaydedin."
+  },
+  "common": {
+    "viewCart": "Sepeti Gör",
+    "total": "Toplam",
+    "searchAddress": "Teslimat adresi arayın..."
+  },
+  "home": {
+    "heroTitlePrefix": "En İyi ",
+    "heroTitleHighlight": "Restoranlardan",
+    "heroTitleSuffix": " Sipariş Verin",
+    "heroSubtitle": "Aç mısınız? En iyi yerel restoranlardan yemek sipariş edin. Dakikalar içinde kapınızda.",
+    "deliveringTo": "Teslimat adresi:",
+    "active": "(Aktif)",
+    "temporary": "(Geçici)",
+    "nearbyRestaurants": "Yakındaki Restoranlar",
+    "metersAway": "{{distance}}m uzakta",
+    "kmAway": "{{distance}}km uzakta",
+    "noRestaurants": "Yakında restoran bulunamadı",
+    "noRestaurantsHelp": "Şu anda bulunduğunuz konuma hizmet veren şube yok. Adresinizi değiştirmeyi deneyin."
+  },
+  "orders": {
+    "back": "Geri",
+    "loading": "Sipariş detayları yükleniyor...",
+    "loadError": "Sipariş detayları yüklenemedi.",
+    "orderNo": "Sipariş #{{id}}",
+    "deliveredAt": "{{date}} tarihinde teslim edildi",
+    "orderedAt": "{{date}} tarihinde sipariş verildi",
+    "orderedFrom": "Siparişin verildiği yer:",
+    "deliveredTo": "Teslim edildiği yer:",
+    "orderNote": "Sipariş notu:",
+    "orderSummary": "Sipariş özeti",
+    "unit": "Birim",
+    "subtotal": "Ara Toplam",
+    "deliveryFee": "Teslimat Ücreti",
+    "free": "Ücretsiz",
+    "discount": "İndirim",
+    "taxIncluded": "KDV dahil",
+    "coupon": "Kupon",
+    "total": "Toplam",
+    "paymentMethod": "Ödeme şekli"
+  },
+  "verifyEmail": {
+    "verifyingTitle": "E-posta Doğrulanıyor...",
+    "verifyingText": "E-posta adresinizi doğrularken lütfen bekleyin.",
+    "successTitle": "E-posta Doğrulandı!",
+    "successText": "E-postanız başarıyla doğrulandı. Artık hesabınızın tüm özelliklerine erişebilirsiniz.",
+    "continueToLogin": "Girişe Devam Et",
+    "failedTitle": "Doğrulama Başarısız",
+    "backToLogin": "Girişe Dön",
+    "contactSupport": "Destek ile İletişime Geç",
+    "failedDefault": "Doğrulama başarısız. Anahtar geçersiz veya süresi dolmuş olabilir.",
+    "failedGeneric": "Doğrulama başarısız.",
+    "noToken": "Doğrulama anahtarı bulunamadı."
+  },
+  "payment": {
+    "successTitle": "Ödeme Başarılı!",
+    "successText": "Siparişiniz için teşekkürler. Ödemenizi aldık ve siparişiniz hazırlanıyor.",
+    "viewMyOrders": "Siparişlerimi Gör",
+    "backToHome": "Ana Sayfaya Dön",
+    "failedTitle": "Ödeme Başarısız",
+    "failedText": "Ödeme işlemi sırasında bir şeyler ters gitti. Lütfen tekrar deneyin.",
+    "tryAgain": "Tekrar Dene",
+    "contactSupport": "Destek ile İletişime Geç"
   }
 }

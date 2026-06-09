@@ -6,6 +6,7 @@ import { useUser } from '@/context/UserContext';
 import { useRouter } from 'next/navigation';
 import { Search, MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { useTranslation } from 'react-i18next';
 
 type PlacesLibrary = {
   AutocompleteSessionToken: new () => unknown;
@@ -47,6 +48,7 @@ type AddressPrediction = {
 };
 
 export function AddressSearch() {
+  const { t } = useTranslation();
   const [inputValue, setInputValue] = useState('');
   const placesLib = useMapsLibrary('places') as PlacesLibrary | null;
   const sessionTokenRef = useRef<unknown | null>(null);
@@ -157,7 +159,7 @@ export function AddressSearch() {
       <div className="relative">
         <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
         <Input 
-            placeholder="Search for a delivery address..." 
+            placeholder={t('common.searchAddress')}
             className="pl-9 bg-zinc-50/50 border-zinc-200 focus:bg-white transition-colors rounded-full"
             value={inputValue}
             onChange={handleInputChange}

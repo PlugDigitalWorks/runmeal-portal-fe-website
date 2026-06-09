@@ -2,6 +2,7 @@
 
 import { Country, State, City } from 'country-state-city';
 import { Control, Controller, UseFormSetValue, FieldValues, FieldErrors, Path, PathValue } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 
 export interface AddressLocationFields {
   countryCode: string;
@@ -20,6 +21,7 @@ interface AddressSelectsProps<T extends FieldValues & AddressLocationFields> {
 }
 
 export function AddressSelects<T extends FieldValues & AddressLocationFields>({ control, setValue, currentCountry, currentState, errors, className, onLocationChange }: AddressSelectsProps<T>) {
+  const { t } = useTranslation();
   const countries = Country.getAllCountries();
   
   const selectedCountryCode = currentCountry;
@@ -70,7 +72,7 @@ export function AddressSelects<T extends FieldValues & AddressLocationFields>({ 
                 }
               }}
             >
-              <option value="">Select Country</option>
+              <option value="">{t('address.selectCountry')}</option>
               {countries.map((c) => (
                 <option key={c.isoCode} value={c.isoCode}>
                   {c.name}
@@ -109,7 +111,7 @@ export function AddressSelects<T extends FieldValues & AddressLocationFields>({ 
                   }
                 }}
               >
-                <option value="">Select {labels.state}</option>
+                <option value="">{t('address.selectOption', { label: labels.state })}</option>
                 {states.map((s) => (
                   <option key={s.isoCode} value={s.name}>
                     {s.name}
@@ -127,7 +129,7 @@ export function AddressSelects<T extends FieldValues & AddressLocationFields>({ 
                     {...field}
                     value={field.value ?? ''}
                     disabled={!currentCountry}
-                    placeholder={`Enter ${labels.state}`}
+                    placeholder={t('address.enterOption', { label: labels.state })}
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                  />
              )}
@@ -161,7 +163,7 @@ export function AddressSelects<T extends FieldValues & AddressLocationFields>({ 
                      }
                 }}
                 >
-                <option value="">Select {labels.city}</option>
+                <option value="">{t('address.selectOption', { label: labels.city })}</option>
                 {cities.map((c) => (
                     <option key={c.name} value={c.name}>
                     {c.name}
@@ -179,7 +181,7 @@ export function AddressSelects<T extends FieldValues & AddressLocationFields>({ 
                     {...field}
                     value={field.value ?? ''}
                     disabled={!currentState}
-                    placeholder={`Enter ${labels.city}`}
+                    placeholder={t('address.enterOption', { label: labels.city })}
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                  />
              )}

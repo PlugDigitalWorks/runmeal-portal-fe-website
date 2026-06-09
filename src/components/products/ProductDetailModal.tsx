@@ -99,7 +99,7 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
 
             loadDetails();
         }
-    }, [isOpen, product, selectedBranch]);
+    }, [isOpen, product, selectedBranch, t]);
 
     if (!isOpen || !product) return null;
 

@@ -3,12 +3,14 @@
 import { useCart } from '@/context/CartContext';
 import { Button } from '@/components/ui/button';
 import { ShoppingBag } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface BranchStickyCartProps {
     branchId: string;
 }
 
 export function BranchStickyCart({ branchId }: BranchStickyCartProps) {
+    const { t } = useTranslation();
     const { openCart } = useCart();
 
     // Subscribe to cart changes (using context hook) - but getCartByBranch fetches from 'carts' which is reactive.
@@ -28,7 +30,7 @@ export function BranchStickyCart({ branchId }: BranchStickyCartProps) {
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-zinc-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-40 md:hidden">
             <div className="flex items-center justify-between gap-4">
                 <div className="flex flex-col">
-                    <span className="text-sm font-medium text-zinc-500">Total</span>
+                    <span className="text-sm font-medium text-zinc-500">{t('common.total')}</span>
                     <span className="text-lg font-bold text-orange-600">
                         ₺{totalPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
@@ -41,7 +43,7 @@ export function BranchStickyCart({ branchId }: BranchStickyCartProps) {
                     <div className="bg-white/20 h-8 w-8 rounded-full flex items-center justify-center">
                         <span className="text-sm">{itemCount}</span>
                     </div>
-                    <span>View Cart</span>
+                    <span>{t('common.viewCart')}</span>
                     <ShoppingBag className="h-5 w-5" />
                 </Button>
             </div>

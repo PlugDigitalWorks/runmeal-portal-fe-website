@@ -5,14 +5,12 @@ import { I18nextProvider } from 'react-i18next';
 import i18n from './config';
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  // Avoid hydration mismatch: render children only after i18n is ready on client.
+  // i18n is initialized synchronously at module import (see ./config).
+  // Subscribe only to cover the rare case where it isn't ready yet.
   const [ready, setReady] = useState(i18n.isInitialized);
 
   useEffect(() => {
-    if (i18n.isInitialized) {
-      setReady(true);
-      return;
-    }
+    if (i18n.isInitialized) return;
     const onInit = () => setReady(true);
     i18n.on('initialized', onInit);
     return () => i18n.off('initialized', onInit);

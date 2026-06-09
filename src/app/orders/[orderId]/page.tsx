@@ -10,6 +10,8 @@ import { branchService } from '@/services/branch.service';
 import { Order, OrderDetails } from '@/services/order.service';
 import { RUNMEAL_LOGO } from '@/lib/constants';
 import { Branch } from '@/types/branch';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import {
   formatCurrency,
   formatOrderDateTime,
@@ -31,13 +33,14 @@ function formatPaymentMethod(value: string | null | undefined) {
     .join(' ');
 }
 
-function getOrderTimeLabel(order: OrderDetails) {
+function getOrderTimeLabel(order: OrderDetails, t: TFunction) {
   const completedAt = order.deliveredAt || order.completedAt;
-  if (completedAt) return `${formatOrderDateTime(completedAt)} tarihinde teslim edildi`;
-  return `${formatOrderDateTime(order.createdAt)} tarihinde sipariş verildi`;
+  if (completedAt) return t('orders.deliveredAt', { date: formatOrderDateTime(completedAt) });
+  return t('orders.orderedAt', { date: formatOrderDateTime(order.createdAt) });
 }
 
 export default function OrderDetailPage() {
+  const { t } = useTranslation();
   const params = useParams<{ orderId: string }>();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -87,7 +90,7 @@ export default function OrderDetailPage() {
         }
       } catch (loadError) {
         console.error('Failed to fetch order detail', loadError);
-        if (mounted) setError('Order details could not be loaded.');
+        if (mounted) setError(t('orders.loadError'));
       } finally {
         if (mounted) setLoading(false);
       }
@@ -98,7 +101,7 @@ export default function OrderDetailPage() {
     return () => {
       mounted = false;
     };
-  }, [orderId, searchParams]);
+  }, [orderId, searchParams, t]);
 
   const subtotal = useMemo(() => getOrderSubtotal(order ?? ({} as Order), order?.items ?? []), [order]);
   const deliveryFee = toNumber(order?.deliveryFee);
@@ -109,7 +112,7 @@ export default function OrderDetailPage() {
   const logoUrl = branch?.logoUrl || order?.branchLogoUrl || RUNMEAL_LOGO;
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center pt-20">Loading order details...</div>;
+    return <div className="min-h-screen flex items-center justify-center pt-20">{t('orders.loading')}</div>;
   }
 
   if (error || !order) {
@@ -117,11 +120,11 @@ export default function OrderDetailPage() {
       <div className="container mx-auto max-w-3xl px-4 py-10">
         <Button variant="ghost" onClick={() => router.back()} className="mb-4">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
+          {t('orders.back')}
         </Button>
         <Card>
           <CardContent className="py-10 text-center text-red-600">
-            {error || 'Order details could not be loaded.'}
+            {error || t('orders.loadError')}
           </CardContent>
         </Card>
       </div>
@@ -133,7 +136,7 @@ export default function OrderDetailPage() {
       <div className="container mx-auto max-w-4xl px-4 py-8">
         <Button variant="ghost" onClick={() => router.back()} className="mb-4">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
+          {t('orders.back')}
         </Button>
 
         <div className="space-y-6">
@@ -155,9 +158,9 @@ export default function OrderDetailPage() {
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <h1 className="text-2xl font-bold text-zinc-950">{branchName}</h1>
-                      <p className="mt-1 text-sm text-zinc-600">{getOrderTimeLabel(order)}</p>
+                      <p className="mt-1 text-sm text-zinc-600">{getOrderTimeLabel(order, t)}</p>
                       <p className="mt-1 text-sm font-medium text-zinc-700">
-                        Sipariş #{getOrderDisplayId(order)}
+                        {t('orders.orderNo', { id: getOrderDisplayId(order) })}
                       </p>
                     </div>
                     <span className="inline-flex w-fit rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium capitalize text-zinc-700">
@@ -169,7 +172,7 @@ export default function OrderDetailPage() {
                     <div className="flex gap-3">
                       <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-zinc-500" />
                       <div>
-                        <p className="text-sm text-zinc-500">Siparişin verildiği yer:</p>
+                        <p className="text-sm text-zinc-500">{t('orders.orderedFrom')}</p>
                         <p className="font-medium text-zinc-950">{branchName}</p>
                         <p className="text-sm text-zinc-600">{branchAddress}</p>
                       </div>
@@ -177,7 +180,7 @@ export default function OrderDetailPage() {
                     <div className="flex gap-3">
                       <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-zinc-500" />
                       <div>
-                        <p className="text-sm text-zinc-500">Teslim edildiği yer:</p>
+                        <p className="text-sm text-zinc-500">{t('orders.deliveredTo')}</p>
                         <p className="font-medium text-zinc-950">{order.addressText || '-'}</p>
                         {order.phone ? <p className="text-sm text-zinc-600">{order.phone}</p> : null}
                       </div>
@@ -186,7 +189,7 @@ export default function OrderDetailPage() {
                       <div className="flex gap-3">
                         <ReceiptText className="mt-0.5 h-5 w-5 shrink-0 text-zinc-500" />
                         <div>
-                          <p className="text-sm text-zinc-500">Sipariş notu:</p>
+                          <p className="text-sm text-zinc-500">{t('orders.orderNote')}</p>
                           <p className="text-sm font-medium text-zinc-950">{order.note}</p>
                         </div>
                       </div>
@@ -201,7 +204,7 @@ export default function OrderDetailPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ReceiptText className="h-5 w-5 text-orange-600" />
-                Sipariş özeti
+                {t('orders.orderSummary')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -218,7 +221,7 @@ export default function OrderDetailPage() {
                             {getOrderItemQty(item)}x {item.productName}
                           </p>
                           <p className="text-xs text-zinc-500">
-                            Unit: {formatCurrency(getOrderItemUnitPrice(item))}
+                            {t('orders.unit')}: {formatCurrency(getOrderItemUnitPrice(item))}
                           </p>
                         </div>
                         <p className="shrink-0 font-semibold text-zinc-950">
@@ -237,33 +240,33 @@ export default function OrderDetailPage() {
 
               <div className="space-y-3 border-t border-zinc-200 pt-5">
                 <div className="flex justify-between text-zinc-700">
-                  <span>Ara Toplam</span>
+                  <span>{t('orders.subtotal')}</span>
                   <span>{formatCurrency(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-zinc-700">
-                  <span>Teslimat Ücreti</span>
-                  <span>{deliveryFee > 0 ? formatCurrency(deliveryFee) : 'Free'}</span>
+                  <span>{t('orders.deliveryFee')}</span>
+                  <span>{deliveryFee > 0 ? formatCurrency(deliveryFee) : t('orders.free')}</span>
                 </div>
                 {discountAmount > 0 ? (
                   <div className="flex justify-between text-emerald-600">
-                    <span>İndirim</span>
+                    <span>{t('orders.discount')}</span>
                     <span>-{formatCurrency(discountAmount)}</span>
                   </div>
                 ) : null}
                 {taxAmount > 0 ? (
                   <div className="flex justify-between text-zinc-700">
-                    <span>KDV dahil</span>
+                    <span>{t('orders.taxIncluded')}</span>
                     <span>{formatCurrency(taxAmount)}</span>
                   </div>
                 ) : null}
                 {order.couponCode ? (
                   <div className="flex justify-between text-zinc-700">
-                    <span>Kupon</span>
+                    <span>{t('orders.coupon')}</span>
                     <span>{order.couponCode}</span>
                   </div>
                 ) : null}
                 <div className="flex justify-between border-t border-zinc-200 pt-3 text-lg font-bold text-zinc-950">
-                  <span>Toplam</span>
+                  <span>{t('orders.total')}</span>
                   <span className="text-orange-600">{formatCurrency(order.totalPrice)}</span>
                 </div>
               </div>
@@ -271,7 +274,7 @@ export default function OrderDetailPage() {
               <div className="flex items-center justify-between border-t border-zinc-200 pt-5">
                 <div className="flex items-center gap-2 font-medium text-zinc-950">
                   <CreditCard className="h-5 w-5 text-zinc-500" />
-                  Ödeme şekli
+                  {t('orders.paymentMethod')}
                 </div>
                 <div className="text-right">
                   <p>{formatPaymentMethod(order.paymentMethod)}</p>
