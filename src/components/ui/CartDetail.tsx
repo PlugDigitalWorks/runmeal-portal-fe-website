@@ -3,8 +3,9 @@
 import { Cart, CartItem } from '@/types/cart';
 import { Branch } from '@/types/branch';
 import { Button } from '@/components/ui/button';
-import { X, Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
+import { X, Trash2, Plus, Minus } from 'lucide-react';
 import Image from 'next/image';
+import { DEFAULT_PRODUCT_IMAGE } from '@/lib/constants';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 
@@ -56,13 +57,12 @@ export function CartDetail({ cart, branch, onClose }: CartDetailProps) {
                             {(cart.items || []).map(item => (
                                 <div key={item.id} className="flex gap-4">
                                      <div className="h-16 w-16 bg-zinc-50 rounded-lg relative overflow-hidden shrink-0">
-                                        {item.imgUrl ? (
-                                            <Image src={item.imgUrl} alt={item.productName || ''} fill className="object-cover" />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-zinc-300">
-                                                <ShoppingBag className="h-6 w-6" />
-                                            </div>
-                                        )}
+                                        <Image
+                                            src={item.imgUrl || DEFAULT_PRODUCT_IMAGE}
+                                            alt={item.productName || ''}
+                                            fill
+                                            className={item.imgUrl ? 'object-cover' : 'object-contain p-1.5 opacity-90'}
+                                        />
                                     </div>
                                     <div className="flex-1">
                                         <div className="flex justify-between items-start mb-1">

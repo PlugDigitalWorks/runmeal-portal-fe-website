@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { branchService } from '@/services/branch.service';
 import { Order, OrderDetails } from '@/services/order.service';
+import { RUNMEAL_LOGO } from '@/lib/constants';
 import { Branch } from '@/types/branch';
 import {
   formatCurrency,
@@ -105,7 +106,7 @@ export default function OrderDetailPage() {
   const taxAmount = toNumber(order?.taxAmount);
   const branchName = branch?.name || order?.branchName || 'Branch';
   const branchAddress = branch?.addressText || order?.branchAddressText || '-';
-  const logoUrl = branch?.logoUrl || order?.branchLogoUrl || '/logo.svg';
+  const logoUrl = branch?.logoUrl || order?.branchLogoUrl || RUNMEAL_LOGO;
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center pt-20">Loading order details...</div>;

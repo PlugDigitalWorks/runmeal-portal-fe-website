@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { useUser } from '@/context/UserContext';
 import { Address } from '@/types/address';
 import { userService } from '@/services/user.service';
+import { walletService } from '@/services/wallet.service';
 import { AddressForm } from '@/components/address/AddressForm';
 import { Suspense } from 'react';
 import {
@@ -32,6 +33,15 @@ function ProfileContent() {
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [orderDetails, setOrderDetails] = useState<Record<string, import('@/services/order.service').OrderDetails>>({});
   const [loadingDetails, setLoadingDetails] = useState<Set<string>>(new Set());
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+
+  useEffect(() => {
+      if (user) {
+          walletService.getBalance()
+              .then((b) => setWalletBalance(b.balance))
+              .catch(() => setWalletBalance(null));
+      }
+  }, [user]);
 
   useEffect(() => {
       if (user) {
@@ -160,6 +170,18 @@ function ProfileContent() {
                         <div className="inline-flex items-center px-2 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-medium capitalize">
                             {user?.role}
                         </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Para Puan</CardTitle>
+                    <CardDescription>Cüzdan bakiyeniz</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold text-orange-600">
+                        {walletBalance === null ? '—' : formatCurrency(walletBalance)}
                     </div>
                 </CardContent>
             </Card>

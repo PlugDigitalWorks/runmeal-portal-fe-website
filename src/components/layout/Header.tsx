@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ChefHat, User as UserIcon, LogOut } from 'lucide-react';
+import { User as UserIcon, LogOut } from 'lucide-react';
+import { RUNMEAL_LOGO } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { authService } from '@/services/auth.service';
 import { User } from '@/types/auth';
@@ -33,12 +35,14 @@ export function Header({ user, addresses = [], onAddressSelect, searchComponent 
       <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
-          <div className="bg-orange-600 p-1.5 rounded-lg text-white">
-             <ChefHat className="h-6 w-6" />
-          </div>
-          <span className="text-xl font-bold text-zinc-900 hidden sm:inline-block tracking-tight">
-            Runmeal
-          </span>
+          <Image
+            src={RUNMEAL_LOGO}
+            alt="Runmeal"
+            width={120}
+            height={32}
+            className="h-8 w-auto"
+            priority
+          />
         </Link>
 
         {/* Actions */}

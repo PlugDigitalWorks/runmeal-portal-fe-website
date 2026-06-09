@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { Plus } from 'lucide-react';
 import { CartAddonSelection, CartOptionSelection, ProductDetailModal } from './ProductDetailModal';
 import { formatCurrencyAmount, getCurrencySymbol } from '@/lib/currency';
+import { DEFAULT_PRODUCT_IMAGE } from '@/lib/constants';
 
 interface ProductListProps {
   products: Product[];
@@ -91,9 +92,12 @@ export function ProductList({ products, branchId }: ProductListProps) {
                     unoptimized
                   />
                 ) : (
-                  <div className="absolute inset-0 flex items-center justify-center text-zinc-400 bg-zinc-50">
-                    <span className="text-xs">No Image</span>
-                  </div>
+                  <Image
+                    src={DEFAULT_PRODUCT_IMAGE}
+                    alt={product.name}
+                    fill
+                    className="object-contain p-3 opacity-90"
+                  />
                 )}
               </div>
 

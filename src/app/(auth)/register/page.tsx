@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import Image from 'next/image';
 import { ChefHat } from 'lucide-react';
+import { RUNMEAL_LOGO } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { authService } from '@/services/auth.service';
@@ -86,9 +88,15 @@ export default function RegisterPage() {
       <div className="hidden md:flex md:w-1/2 bg-zinc-900 p-12 flex-col justify-between relative overflow-hidden">
         <div className="absolute inset-0 bg-linear-to-br from-orange-600/20 to-zinc-900/0 pointer-events-none" />
         <div className="relative z-10">
-          <div className="flex items-center gap-2 text-white mb-8">
-            <ChefHat className="h-8 w-8 text-orange-500" />
-            <span className="text-2xl font-bold">Runmeal</span>
+          <div className="mb-8">
+            <Image
+              src={RUNMEAL_LOGO}
+              alt="Runmeal"
+              width={160}
+              height={40}
+              className="h-10 w-auto bg-white rounded-lg px-3 py-2"
+              priority
+            />
           </div>
           <h2 className="text-4xl font-bold text-white leading-tight max-w-lg">
             Delicious food delivered to your doorstep.

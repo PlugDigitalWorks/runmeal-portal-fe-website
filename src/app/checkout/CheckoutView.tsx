@@ -19,6 +19,7 @@ import { AddressForm, AddressFormValues } from '@/components/address/AddressForm
 import type { Address } from '@/types/address';
 import type { Branch } from '@/types/branch';
 import type { Cart, CartItem } from '@/types/cart';
+import { sanitizePositiveNumber } from '@/lib/utils';
 
 type ApiErrorBody = {
     message?: string | string[];
@@ -823,8 +824,10 @@ export default function CheckoutView() {
                                             <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
                                                 <input
                                                     type="number"
+                                                    min={0}
+                                                    inputMode="decimal"
                                                     value={walletAmountInput}
-                                                    onChange={(e) => setWalletAmountInput(e.target.value)}
+                                                    onChange={(e) => setWalletAmountInput(sanitizePositiveNumber(e.target.value, walletAmountInput))}
                                                     placeholder="Amount to use"
                                                     className="min-w-0 border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                                 />
