@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { DEFAULT_PRODUCT_IMAGE } from '@/lib/constants';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 
 interface CartDetailProps {
     cart: Cart;
@@ -17,6 +18,7 @@ interface CartDetailProps {
 }
 
 export function CartDetail({ cart, branch, onClose }: CartDetailProps) {
+    const { t } = useTranslation();
     const { updateQty, removeItem } = useCart();
     const router = useRouter();
 
@@ -38,8 +40,8 @@ export function CartDetail({ cart, branch, onClose }: CartDetailProps) {
             {/* Header */}
             <div className="p-4 bg-white border-b border-zinc-100 flex items-center justify-between sticky top-0 z-10">
                 <div>
-                    <h2 className="font-bold text-xl text-zinc-900">My Cart</h2>
-                    <p className="text-sm text-zinc-500 line-clamp-1">{branch?.name || 'Restaurant'}</p>
+                    <h2 className="font-bold text-xl text-zinc-900">{t('cart.myCart')}</h2>
+                    <p className="text-sm text-zinc-500 line-clamp-1">{branch?.name || t('cart.restaurant')}</p>
                 </div>
                 <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full h-8 w-8 hover:bg-zinc-100">
                     <X className="h-5 w-5 text-zinc-500" />
@@ -52,7 +54,7 @@ export function CartDetail({ cart, branch, onClose }: CartDetailProps) {
                 
                     {/* Products */}
                     <div className="space-y-4">
-                        <h3 className="text-sm font-medium text-zinc-900">Your Items</h3>
+                        <h3 className="text-sm font-medium text-zinc-900">{t('cart.yourItems')}</h3>
                         <div className="space-y-4 bg-white rounded-xl p-4 border border-zinc-100 shadow-sm">
                             {(cart.items || []).map(item => (
                                 <div key={item.id} className="flex gap-4">
@@ -68,9 +70,9 @@ export function CartDetail({ cart, branch, onClose }: CartDetailProps) {
                                         <div className="flex justify-between items-start mb-1">
                                             <h4 className="text-sm font-medium text-zinc-900 line-clamp-2">{item.productName}</h4>
                                         </div>
-                                        <p className="text-xs text-zinc-500 mb-3">Portion</p>
+                                        <p className="text-xs text-zinc-500 mb-3">{t('cart.portion')}</p>
                                         {item.note ? (
-                                            <p className="mb-3 break-words text-xs text-zinc-500">Note: {item.note}</p>
+                                            <p className="mb-3 break-words text-xs text-zinc-500">{t('cart.note')}: {item.note}</p>
                                         ) : null}
                                         
                                         <div className="flex justify-between items-center">
@@ -107,14 +109,14 @@ export function CartDetail({ cart, branch, onClose }: CartDetailProps) {
                             }}
                          >
                             <Plus className="h-4 w-4" />
-                            Add more items
+                            {t('cart.addMoreItems')}
                         </button>
                     </div>
 
                     {/* Cost Summary */}
                      <div className="bg-white rounded-xl p-4 border border-zinc-100 shadow-sm space-y-2 text-sm">
                           <div className="flex justify-between text-zinc-900">
-                             <span>Subtotal</span>
+                             <span>{t('cart.subtotal')}</span>
                              <span>₺{cartTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
                          </div>
                     </div>
@@ -124,7 +126,7 @@ export function CartDetail({ cart, branch, onClose }: CartDetailProps) {
             {/* Footer */}
             <div className="bg-white p-4 border-t border-zinc-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
                  <div className="flex justify-between items-center mb-4">
-                     <span className="font-bold text-zinc-900">Total <span className="text-xs font-normal text-zinc-500">(fees and tax included)</span></span>
+                     <span className="font-bold text-zinc-900">{t('cart.total')} <span className="text-xs font-normal text-zinc-500">{t('cart.feesIncluded')}</span></span>
                      <div className="text-right">
                          <div className="font-bold text-emerald-600 text-lg">₺{finalTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                      </div>
@@ -136,7 +138,7 @@ export function CartDetail({ cart, branch, onClose }: CartDetailProps) {
                         router.push(`/checkout?cartId=${cart.id || cart.cartId}`);
                     }}
                  >
-                     Confirm Cart
+                     {t('cart.confirmCart')}
                  </Button>
             </div>
         </div>

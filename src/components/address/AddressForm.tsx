@@ -14,6 +14,8 @@ import { LocationPicker, GeocodedAddress, AddressComponent, Location } from '@/c
 import { AddressSelects } from '@/components/ui/AddressSelects';
 import { Country, State, City } from 'country-state-city';
 import { useCallback, useRef, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 
 // Helper to normalize strings for comparison
 const normalizeName = (name: string) => {
@@ -25,23 +27,34 @@ const normalizeName = (name: string) => {
 };
 
 // Schema for Address
-export const addressSchema = z.object({
-  countryCode: z.string().min(1, 'Country is required'),
-  district: z.string().min(1, 'District/City is required'),
-  province: z.string().min(1, 'Province/State is required'),
+export const createAddressSchema = (t: TFunction) => z.object({
+  countryCode: z.string().min(1, t('address.validation.countryRequired')),
+  district: z.string().min(1, t('address.validation.districtRequired')),
+  province: z.string().min(1, t('address.validation.provinceRequired')),
   phoneE164: z.string()
     .trim()
-    .min(1, 'Phone is required')
-    .refine((value) => /^\+[1-9]\d{7,14}$/.test(value), 'Use E.164 format, e.g. +905551112233'),
-  postalCode: z.string().min(1, 'Postal Code is required'),
-  street: z.string().min(1, 'Street is required'),
-  buildingNumber: z.string().min(1, 'Building is required'),
-  apartmentNumber: z.string().min(1, 'Apartment is required'),
+    .min(1, t('address.validation.phoneRequired'))
+    .refine((value) => /^\+[1-9]\d{7,14}$/.test(value), t('address.validation.phoneFormat')),
+  postalCode: z.string().min(1, t('address.validation.postalRequired')),
+  street: z.string().min(1, t('address.validation.streetRequired')),
+  buildingNumber: z.string().min(1, t('address.validation.buildingRequired')),
+  apartmentNumber: z.string().min(1, t('address.validation.apartmentRequired')),
   latitude: z.any().transform(val => Number(val)),
-  longitude: z.any().transform(val => Number(val)), 
+  longitude: z.any().transform(val => Number(val)),
 });
 
-export type AddressFormValues = z.infer<typeof addressSchema>;
+export type AddressFormValues = {
+  countryCode: string;
+  district: string;
+  province: string;
+  phoneE164: string;
+  postalCode: string;
+  street: string;
+  buildingNumber: string;
+  apartmentNumber: string;
+  latitude: number;
+  longitude: number;
+};
 
 interface AddressFormProps {
     initialValues?: Partial<AddressFormValues>;
@@ -52,6 +65,8 @@ interface AddressFormProps {
 }
 
 export function AddressForm({ initialValues, addressId, onCancel, onSuccess, resolveCreateIsActive }: AddressFormProps) {
+  const { t } = useTranslation();
+  const addressSchema = createAddressSchema(t);
   const [addressLoading, setAddressLoading] = useState(false);
   const [searchAddress, setSearchAddress] = useState<string | undefined>(undefined);
   const [formError, setFormError] = useState<string | null>(null);
@@ -210,9 +225,9 @@ export function AddressForm({ initialValues, addressId, onCancel, onSuccess, res
       console.error('Failed to save address', error);
       const serverMessage = error.response?.data?.message;
       if (error.response?.status === 429) {
-          setFormError('You are sending requests too quickly. Please wait a moment.');
+          setFormError(t('address.tooManyRequests'));
       } else {
-          setFormError(serverMessage || 'Failed to save address');
+          setFormError(serverMessage || t('address.saveFailed'));
       }
     } finally {
       setAddressLoading(false);
@@ -251,26 +266,26 @@ export function AddressForm({ initialValues, addressId, onCancel, onSuccess, res
          />
          {/* Hidden inputs to register fields if needed, or rely on Controller */ }
         <div className="hidden">
-            <Input label="Country" {...register('countryCode')} />
-            <Input label="District" {...register('district')} />
-            <Input label="Province" {...register('province')} />
+            <Input label={t('address.country')} {...register('countryCode')} />
+            <Input label={t('address.district')} {...register('district')} />
+            <Input label={t('address.province')} {...register('province')} />
          </div>
          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
-                label="Phone"
+                label={t('address.phone')}
                 type="tel"
                 placeholder="+905551112233"
                 {...register('phoneE164')}
                 error={errors.phoneE164?.message}
             />
-            <Input label="Postal Code" placeholder="34000" {...register('postalCode')} error={errors.postalCode?.message} />
+            <Input label={t('address.postalCode')} placeholder="34000" {...register('postalCode')} error={errors.postalCode?.message} />
         </div>
          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input label="Street" {...register('street')} error={errors.street?.message} />
-            <Input label="Building No" {...register('buildingNumber')} error={errors.buildingNumber?.message} />
+            <Input label={t('address.street')} {...register('street')} error={errors.street?.message} />
+            <Input label={t('address.buildingNo')} {...register('buildingNumber')} error={errors.buildingNumber?.message} />
         </div>
          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input label="Apartment" {...register('apartmentNumber')} error={errors.apartmentNumber?.message} />
+            <Input label={t('address.apartment')} {...register('apartmentNumber')} error={errors.apartmentNumber?.message} />
         </div>
 
         {formError && (
@@ -282,10 +297,10 @@ export function AddressForm({ initialValues, addressId, onCancel, onSuccess, res
 
         <div className="flex justify-end pt-2 gap-2">
             <Button type="button" variant="outline" onClick={onCancel}>
-                Cancel
+                {t('address.cancel')}
             </Button>
             <Button type="submit" isLoading={addressLoading}>
-                <Save className="h-4 w-4 mr-2" /> {addressId ? 'Update Address' : 'Save Address'}
+                <Save className="h-4 w-4 mr-2" /> {addressId ? t('address.updateAddress') : t('address.saveAddress')}
             </Button>
         </div>
     </form>

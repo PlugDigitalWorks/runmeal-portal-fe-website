@@ -12,8 +12,10 @@ import { branchService } from '@/services/branch.service';
 import Image from 'next/image';
 import { DEFAULT_PRODUCT_IMAGE } from '@/lib/constants';
 import { CartDetail } from './CartDetail';
+import { useTranslation } from 'react-i18next';
 
 export function CartDrawer() {
+    const { t } = useTranslation();
     const { carts, clearCart, isCartOpen, closeCart, selectedCartId, openCart, updateQty, removeItem, refreshCarts } = useCart();
     const router = useRouter();
     const { user, addresses } = useUser();
@@ -86,9 +88,9 @@ export function CartDrawer() {
                 ) : (
                     <>
                         <div className="p-4 border-b border-zinc-100 flex items-center justify-between bg-white text-zinc-900">
-                            <SheetTitle className="font-bold text-lg">All Carts</SheetTitle>
+                            <SheetTitle className="font-bold text-lg">{t('cart.allCarts')}</SheetTitle>
                             <SheetDescription className="sr-only">
-                                View and manage items in your cart.
+                                {t('cart.manageDescription')}
                             </SheetDescription>
                         </div>
 
@@ -96,7 +98,7 @@ export function CartDrawer() {
                             {carts.filter(c => c.isActive).length === 0 ? (
                                 <div className="text-center text-zinc-500 mt-10">
                                     <ShoppingBag className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                                    <p>Your cart is empty</p>
+                                    <p>{t('cart.empty')}</p>
                                 </div>
                             ) : (
                                 carts.filter(c => c.isActive).map(cart => {
@@ -117,11 +119,11 @@ export function CartDrawer() {
                                                     </div>
                                                     <div>
                                                         <h3 className="font-bold text-zinc-900 line-clamp-1">
-                                                            {branch?.name || 'Loading...'}
+                                                            {branch?.name || t('cart.loading')}
                                                         </h3>
                                                         <p className="text-xs text-zinc-500">
                                                             {/* Delivery info mock or real */}
-                                                            30-45 min • Delivery: ₺0
+                                                            {t('cart.deliveryInfo')}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -171,7 +173,7 @@ export function CartDrawer() {
                                                             )}
                                                             {item.note ? (
                                                                 <p className="mt-1 break-words text-xs text-zinc-500">
-                                                                    Note: {item.note}
+                                                                    {t('cart.note')}: {item.note}
                                                                 </p>
                                                             ) : null}
                                                             <div className="flex items-center gap-2 mt-2">
@@ -209,7 +211,7 @@ export function CartDrawer() {
                                             {/* Footer */}
                                             <div className="border-t border-zinc-100 pt-3">
                                                 <div className="flex justify-between items-center mb-3">
-                                                    <span className="text-sm text-zinc-500">Subtotal</span>
+                                                    <span className="text-sm text-zinc-500">{t('cart.subtotal')}</span>
                                                     <span className="font-bold text-zinc-900">₺{cart.totalCartPrice?.toFixed(2) ?? '0.00'}</span>
                                                 </div>
                                                 <div className="space-y-2">
@@ -222,7 +224,7 @@ export function CartDrawer() {
                                                         }}
                                                     >
                                                         <Plus className="h-4 w-4 mr-2" />
-                                                        Add more items
+                                                        {t('cart.addMoreItems')}
                                                     </Button>
                                                     <Button className="w-full bg-white border border-zinc-900 text-zinc-900 hover:bg-zinc-50"
                                                         onClick={() => {
@@ -230,7 +232,7 @@ export function CartDrawer() {
                                                             router.push(`/checkout?cartId=${cartId}`);
                                                         }}
                                                     >
-                                                        Proceed to Checkout
+                                                        {t('cart.proceedToCheckout')}
                                                     </Button>
                                                 </div>
                                             </div>

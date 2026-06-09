@@ -3,8 +3,10 @@
 import { useUser } from '@/context/UserContext';
 import { AddressForm } from '@/components/address/AddressForm';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export function AddressSaveModal() {
+  const { t } = useTranslation();
   const { showAddressModal, setShowAddressModal, tempAddress, setTempAddress, refreshAddresses } = useUser();
 
   const handleClose = () => {
@@ -27,7 +29,7 @@ export function AddressSaveModal() {
         {/* Content */}
         <div className="relative bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-zinc-100 p-4 flex items-center justify-between z-10">
-                <h2 className="text-lg font-bold text-zinc-900">Save Delivery Address</h2>
+                <h2 className="text-lg font-bold text-zinc-900">{t('address.saveModalTitle')}</h2>
                 <button 
                   onClick={handleClose}
                   className="p-2 hover:bg-zinc-100 rounded-full transition-colors"
@@ -38,7 +40,7 @@ export function AddressSaveModal() {
             
             <div className="p-6">
                 <div className="mb-6 p-4 bg-orange-50 text-orange-800 rounded-lg text-sm border border-orange-100">
-                    Please save this address to continue adding items to your cart.
+                    {t('address.saveModalDescription')}
                 </div>
 
                 <AddressForm

@@ -9,6 +9,7 @@ import { formatCurrencyAmount, getCurrencySymbol } from '@/lib/currency';
 import { DEFAULT_PRODUCT_IMAGE } from '@/lib/constants';
 import { X, Minus, Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 export type CartOptionSelection = {
     groupId: string;
@@ -36,6 +37,7 @@ interface ProductDetailModalProps {
 }
 
 export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: ProductDetailModalProps) {
+    const { t } = useTranslation();
     const { selectedBranch } = useBranch();
     const [quantity, setQuantity] = useState(1);
     const [selectedAddons, setSelectedAddons] = useState<Record<string, boolean>>({});
@@ -70,7 +72,7 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
                         setCurrencySymbol(getCurrencySymbol(fullProduct || product));
                     } catch (error) {
                         console.error("Failed to load product options", error);
-                        toast.error("Failed to load product options");
+                        toast.error(t('product.loadFailed'));
                     } finally {
                         setLoadingDetails(false);
                     }
@@ -147,7 +149,7 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
                     return { ...prev, [groupId]: current.filter(id => id !== optionId) };
                 } else {
                     if (maxSelections && current.length >= maxSelections) {
-                        toast.error(`You can choose up to ${maxSelections} options.`);
+                        toast.error(t('product.maxOptions', { count: maxSelections }));
                         return prev;
                     }
                     return { ...prev, [groupId]: [...current, optionId] };
@@ -162,12 +164,12 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
             const selectedCount = (selections[group.id] || []).length;
 
             if (group.isRequired && selectedCount === 0) {
-                toast.error(`Please make a selection for "${group.name}"`);
+                toast.error(t('product.selectRequired', { name: group.name }));
                 return;
             }
 
             if (group.minSelections && selectedCount < group.minSelections) {
-                toast.error(`${group.name}: You must select at least ${group.minSelections} options.`);
+                toast.error(t('product.minOptions', { name: group.name, count: group.minSelections }));
                 return;
             }
         }
@@ -274,21 +276,21 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
                                     <div>
                                         <h3 className="font-bold text-zinc-800 text-lg">{group.name}</h3>
                                         {group.minSelections && group.minSelections > 1 ? (
-                                            <p className="text-sm text-zinc-500">Select at least {group.minSelections}</p>
+                                            <p className="text-sm text-zinc-500">{t('product.selectAtLeast', { count: group.minSelections })}</p>
                                         ) : group.isRequired ? (
-                                            <p className="text-sm text-zinc-500">1 Selection Required</p>
+                                            <p className="text-sm text-zinc-500">{t('product.oneRequired')}</p>
                                         ) : (
-                                            <p className="text-sm text-zinc-500">Optional</p>
+                                            <p className="text-sm text-zinc-500">{t('product.optional')}</p>
                                         )}
                                         {hasMax && !isSingle && (
-                                            <p className="text-xs text-zinc-400">Max {group.maxSelections}</p>
+                                            <p className="text-xs text-zinc-400">{t('product.max', { count: group.maxSelections })}</p>
                                         )}
                                     </div>
                                     <div className="flex flex-col items-end">
                                         {group.isRequired ? (
-                                            <span className="px-2 py-1 bg-zinc-100 text-zinc-600 text-xs font-medium rounded">Required</span>
+                                            <span className="px-2 py-1 bg-zinc-100 text-zinc-600 text-xs font-medium rounded">{t('product.required')}</span>
                                         ) : (
-                                            <span className="px-2 py-1 bg-zinc-50 text-zinc-400 text-xs font-medium rounded">Optional</span>
+                                            <span className="px-2 py-1 bg-zinc-50 text-zinc-400 text-xs font-medium rounded">{t('product.optional')}</span>
                                         )}
                                     </div>
                                 </div>
@@ -315,7 +317,7 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
                                                     {opt.priceDelta > 0 ? (
                                                         <span className="text-zinc-600">+{formatCurrencyAmount(opt.priceDelta, currencySymbol)}</span>
                                                     ) : (
-                                                        <span className="text-orange-600 font-bold">Free</span>
+                                                        <span className="text-orange-600 font-bold">{t('product.free')}</span>
                                                     )}
                                                 </div>
                                             </label>
@@ -330,7 +332,7 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
                     {/* Addons */}
                     {product.addons && product.addons.length > 0 && (
                         <div className="space-y-3 pt-4 border-t border-zinc-100">
-                            <h3 className="font-bold text-zinc-800 text-lg">Extras</h3>
+                            <h3 className="font-bold text-zinc-800 text-lg">{t('product.extras')}</h3>
                             <div className="space-y-2">
                                 {product.addons.map(addon => (
                                     <label key={addon.id} className="flex items-center justify-between p-3 rounded-lg border border-zinc-200 cursor-pointer hover:border-orange-500/50 transition-colors has-[:checked]:border-orange-600 has-[:checked]:bg-orange-50">
@@ -352,7 +354,7 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
 
                     <div className="space-y-2 pt-4 border-t border-zinc-100">
                         <label htmlFor="product-note" className="text-sm font-semibold text-zinc-800">
-                            Product note
+                            {t('product.productNote')}
                         </label>
                         <textarea
                             id="product-note"
@@ -360,7 +362,7 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
                             onChange={(event) => setProductNote(event.target.value)}
                             maxLength={1000}
                             rows={3}
-                            placeholder="Less spicy, no onions..."
+                            placeholder={t('product.productNotePlaceholder')}
                             className="w-full resize-none rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
                         />
                     </div>
@@ -385,7 +387,7 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
                             </button>
                         </div>
                         <div className="text-right">
-                            <div className="text-xs text-zinc-400 font-medium uppercase tracking-wide">Total Amount</div>
+                            <div className="text-xs text-zinc-400 font-medium uppercase tracking-wide">{t('product.totalAmount')}</div>
                             <div className="text-2xl font-bold text-orange-600">{formatCurrencyAmount(calculateTotal(), currencySymbol)}</div>
                         </div>
                     </div>
@@ -395,7 +397,7 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
                         disabled={loadingDetails}
                         className="w-full bg-orange-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-orange-600/25 hover:bg-orange-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {loadingDetails ? 'Loading...' : 'Add to Cart'}
+                        {loadingDetails ? t('product.loading') : t('product.addToCart')}
                     </button>
                 </div>
 
