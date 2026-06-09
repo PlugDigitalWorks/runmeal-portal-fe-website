@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import { User as UserIcon, LogOut } from 'lucide-react';
 import { RUNMEAL_LOGO } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import { User } from '@/types/auth';
 import { Address } from '@/types/address';
 import { MapPin } from 'lucide-react';
 import { CartDrawer } from '@/components/ui/CartDrawer';
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
 
 interface HeaderProps {
   user: User | null;
@@ -21,7 +23,8 @@ interface HeaderProps {
 
 export function Header({ user, addresses = [], onAddressSelect, searchComponent }: HeaderProps) {
   const router = useRouter();
-  
+  const { t } = useTranslation();
+
   const activeAddressId = addresses.find(a => a.isActive)?.id || '';
 
   const handleLogout = async () => {
@@ -66,7 +69,7 @@ export function Header({ user, addresses = [], onAddressSelect, searchComponent 
                        className="text-sm bg-transparent border-none focus:ring-0 cursor-pointer font-medium text-zinc-700 truncate w-full outline-none"
                        value={activeAddressId}
                        onChange={(e) => onAddressSelect?.(e.target.value)}
-                       title="Select Delivery Address"
+                       title={t('header.selectAddress')}
                    >
                        {addresses.map(addr => (
                            <option key={addr.id} value={addr.id}>
@@ -86,21 +89,23 @@ export function Header({ user, addresses = [], onAddressSelect, searchComponent 
               </Button>
               <Button variant="ghost" size="sm" onClick={handleLogout} className="text-red-600 hover:bg-red-50 hover:text-red-700">
                 <LogOut className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Logout</span>
+                <span className="hidden sm:inline">{t('header.logout')}</span>
               </Button>
+              <LanguageSwitcher />
             </>
           ) : (
             <>
                <Link href="/login">
                 <Button variant="ghost" size="sm">
-                  Sign In
+                  {t('header.signIn')}
                 </Button>
               </Link>
               <Link href="/register">
                 <Button size="sm" className="rounded-full px-6">
-                  Sign Up
+                  {t('header.signUp')}
                 </Button>
               </Link>
+              <LanguageSwitcher />
             </>
           )}
         </div>
@@ -114,7 +119,7 @@ export function Header({ user, addresses = [], onAddressSelect, searchComponent 
                    className="text-sm bg-transparent border-none focus:ring-0 cursor-pointer font-medium text-zinc-700 truncate w-full outline-none"
                    value={activeAddressId}
                    onChange={(e) => onAddressSelect?.(e.target.value)}
-                   aria-label="Select Delivery Address"
+                   aria-label={t('header.selectAddress')}
                >
                    {addresses.map(addr => (
                        <option key={addr.id} value={addr.id}>

@@ -1,0 +1,79 @@
+{
+  "header": {
+    "logout": "Çıkış Yap",
+    "signIn": "Giriş Yap",
+    "signUp": "Kayıt Ol",
+    "selectAddress": "Teslimat Adresi Seç"
+  },
+  "auth": {
+    "footer": "© 2024 Runmeal Inc.",
+    "email": "E-posta",
+    "emailPlaceholder": "ad@ornek.com",
+    "password": "Şifre",
+    "validation": {
+      "emailInvalid": "Lütfen geçerli bir e-posta adresi girin",
+      "passwordRequired": "Şifre gereklidir",
+      "passwordMin": "Şifre en az 6 karakter olmalıdır",
+      "firstNameMin": "Ad en az 2 karakter olmalıdır",
+      "lastNameMin": "Soyad en az 2 karakter olmalıdır",
+      "passwordsMatch": "Şifreler eşleşmiyor",
+      "securityCheck": "Lütfen güvenlik kontrolünü tamamlayın.",
+      "generic": "Bir şeyler ters gitti. Lütfen tekrar deneyin."
+    },
+    "login": {
+      "heroTitle": "Tekrar hoş geldiniz! Sizi özledik.",
+      "title": "Giriş Yap",
+      "subtitle": "Sipariş vermek için hesabınıza erişin.",
+      "orEmail": "Veya e-posta ile giriş yapın",
+      "forgot": "Şifrenizi mi unuttunuz?",
+      "submit": "Giriş Yap",
+      "noAccount": "Hesabınız yok mu?",
+      "createAccount": "Hesap oluştur",
+      "invalidCredentials": "Geçersiz e-posta veya şifre.",
+      "googleRestoreError": "Google girişi tamamlandı, ancak oturum geri yüklenemedi.",
+      "googleFailed": "Google girişi başarısız oldu. Lütfen tekrar deneyin."
+    },
+    "register": {
+      "heroTitle": "Lezzetli yemekler kapınıza kadar geliyor.",
+      "title": "Hesap oluştur",
+      "subtitle": "Başlamak için bilgilerinizi girin.",
+      "firstName": "Ad",
+      "lastName": "Soyad",
+      "firstNamePlaceholder": "Ahmet",
+      "lastNamePlaceholder": "Yılmaz",
+      "submit": "Hesap Oluştur",
+      "haveAccount": "Zaten bir hesabınız var mı?",
+      "signIn": "Giriş yap",
+      "successTitle": "Hesap Oluşturuldu!",
+      "successText": "Hesabınız başarıyla oluşturuldu. Giriş yapmadan önce lütfen hesabınızı doğrulamak için e-postanızı kontrol edin.",
+      "goToLogin": "Girişe Git"
+    },
+    "forgot": {
+      "heroTitle": "Şifrenizi mi unuttunuz? Merak etmeyin.",
+      "title": "Şifre Sıfırla",
+      "subtitle": "Sıfırlama bağlantısı almak için e-postanızı girin.",
+      "submit": "Sıfırlama Bağlantısı Gönder",
+      "remember": "Şifrenizi hatırladınız mı?",
+      "signIn": "Giriş yap",
+      "sent": "Bir hesap mevcutsa, bir sıfırlama bağlantısı gönderildi.",
+      "checkEmailTitle": "E-postanızı Kontrol Edin",
+      "backToLogin": "Girişe Dön"
+    },
+    "reset": {
+      "heroTitle": "Yeni bir şifre ile hesabınızı güvene alın.",
+      "title": "Yeni Şifre Belirle",
+      "subtitle": "Yeni şifrenizi aşağıya girin.",
+      "newPassword": "Yeni Şifre",
+      "confirmPassword": "Şifreyi Onayla",
+      "submit": "Şifreyi Sıfırla",
+      "successTitle": "Şifre Sıfırlandı!",
+      "successText": "Şifreniz başarıyla sıfırlandı. Artık yeni şifrenizle giriş yapabilirsiniz.",
+      "goToLogin": "Girişe Git",
+      "invalidTitle": "Geçersiz Bağlantı",
+      "invalidText": "Bu şifre sıfırlama bağlantısı geçersiz veya eksik. Lütfen yeni bir tane talep edin.",
+      "requestAgain": "Tekrar Talep Et",
+      "missingToken": "Geçersiz veya eksik sıfırlama anahtarı.",
+      "loading": "Yükleniyor..."
+    }
+  }
+}

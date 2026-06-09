@@ -7,6 +7,7 @@ import { BranchProvider } from "@/context/BranchContext";
 import { CartProvider } from "@/context/CartContext";
 import { Toaster } from "sonner";
 import { GoogleMapsProvider } from "@/providers/GoogleMapsProvider";
+import { I18nProvider } from "@/i18n/I18nProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -76,17 +77,19 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <UserProvider>
-          <BranchProvider>
-            <CartProvider>
-              <GoogleMapsProvider>
-                <GlobalHeader />
-                {children}
-              </GoogleMapsProvider>
-              <Toaster position="top-left" richColors toastOptions={{ style: { marginTop: '60px' } }} />
-            </CartProvider>
-          </BranchProvider>
-        </UserProvider>
+        <I18nProvider>
+          <UserProvider>
+            <BranchProvider>
+              <CartProvider>
+                <GoogleMapsProvider>
+                  <GlobalHeader />
+                  {children}
+                </GoogleMapsProvider>
+                <Toaster position="top-left" richColors toastOptions={{ style: { marginTop: '60px' } }} />
+              </CartProvider>
+            </BranchProvider>
+          </UserProvider>
+        </I18nProvider>
       </body>
     </html>
   );

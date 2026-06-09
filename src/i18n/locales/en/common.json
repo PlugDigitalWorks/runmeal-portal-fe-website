@@ -1,0 +1,79 @@
+{
+  "header": {
+    "logout": "Logout",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "selectAddress": "Select Delivery Address"
+  },
+  "auth": {
+    "footer": "© 2024 Runmeal Inc.",
+    "email": "Email",
+    "emailPlaceholder": "name@example.com",
+    "password": "Password",
+    "validation": {
+      "emailInvalid": "Please enter a valid email address",
+      "passwordRequired": "Password is required",
+      "passwordMin": "Password must be at least 6 characters",
+      "firstNameMin": "First name must be at least 2 characters",
+      "lastNameMin": "Last name must be at least 2 characters",
+      "passwordsMatch": "Passwords don't match",
+      "securityCheck": "Please complete the security check.",
+      "generic": "Something went wrong. Please try again."
+    },
+    "login": {
+      "heroTitle": "Welcome back! We missed you.",
+      "title": "Sign in",
+      "subtitle": "Access your account to order.",
+      "orEmail": "Or sign in with email",
+      "forgot": "Forgot password?",
+      "submit": "Sign In",
+      "noAccount": "Don't have an account?",
+      "createAccount": "Create an account",
+      "invalidCredentials": "Invalid email or password.",
+      "googleRestoreError": "Google login completed, but the session could not be restored.",
+      "googleFailed": "Google login failed. Please try again."
+    },
+    "register": {
+      "heroTitle": "Delicious food delivered to your doorstep.",
+      "title": "Create an account",
+      "subtitle": "Enter your details to get started.",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "firstNamePlaceholder": "John",
+      "lastNamePlaceholder": "Doe",
+      "submit": "Create Account",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "successTitle": "Account Created!",
+      "successText": "Your account has been successfully created. Please check your email to verify your account before logging in.",
+      "goToLogin": "Go to Login"
+    },
+    "forgot": {
+      "heroTitle": "Forgot your password? No worries.",
+      "title": "Reset Password",
+      "subtitle": "Enter your email to receive a reset link.",
+      "submit": "Send Reset Link",
+      "remember": "Remember your password?",
+      "signIn": "Sign in",
+      "sent": "If an account exists, a reset link has been sent.",
+      "checkEmailTitle": "Check Your Email",
+      "backToLogin": "Back to Login"
+    },
+    "reset": {
+      "heroTitle": "Secure your account with a new password.",
+      "title": "Set New Password",
+      "subtitle": "Enter your new password below.",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm Password",
+      "submit": "Reset Password",
+      "successTitle": "Password Reset!",
+      "successText": "Your password has been successfully reset. You can now login with your new password.",
+      "goToLogin": "Go to Login",
+      "invalidTitle": "Invalid Link",
+      "invalidText": "This password reset link is invalid or missing. Please request a new one.",
+      "requestAgain": "Request Again",
+      "missingToken": "Invalid or missing reset token.",
+      "loading": "Loading..."
+    }
+  }
+}

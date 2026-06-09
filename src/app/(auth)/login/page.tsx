@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useTranslation } from 'react-i18next';
 import { AxiosError } from 'axios';
 import Image from 'next/image';
 import { ChefHat } from 'lucide-react';
@@ -16,15 +17,18 @@ import { authService } from '@/services/auth.service';
 import { GoogleAuthButton } from '@/components/auth/GoogleAuthButton';
 import { RecaptchaWidget } from '@/components/auth/RecaptchaWidget';
 
-const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(1, 'Password is required'),
-});
-
-type LoginFormValues = z.infer<typeof loginSchema>;
+type LoginFormValues = {
+  email: string;
+  password: string;
+};
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useTranslation();
+  const loginSchema = z.object({
+    email: z.string().email(t('auth.validation.emailInvalid')),
+    password: z.string().min(1, t('auth.validation.passwordRequired')),
+  });
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
@@ -42,7 +46,7 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginFormValues) => {
     if (isRecaptchaEnabled && !recaptchaToken) {
-      setError('Please complete the security check.');
+      setError(t('auth.validation.securityCheck'));
       return;
     }
 
@@ -57,7 +61,7 @@ export default function LoginPage() {
       setRecaptchaToken(null);
       setRecaptchaResetKey((key) => key + 1);
       setError(
-        error.response?.data?.message || 'Invalid email or password.'
+        error.response?.data?.message || t('auth.login.invalidCredentials')
       );
     } finally {
       setIsLoading(false);
@@ -85,14 +89,14 @@ export default function LoginPage() {
         })
         .catch((error) => {
           console.error(error);
-          setError('Google login completed, but the session could not be restored.');
+          setError(t('auth.login.googleRestoreError'));
         })
         .finally(() => setIsLoading(false));
       return;
     }
 
-    setError(reason || 'Google login failed. Please try again.');
-  }, [router]);
+    setError(reason || t('auth.login.googleFailed'));
+  }, [router, t]);
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-white">
@@ -111,11 +115,11 @@ export default function LoginPage() {
             />
           </div>
           <h2 className="text-4xl font-bold text-white leading-tight max-w-lg">
-            Welcome back! We missed you.
+            {t('auth.login.heroTitle')}
           </h2>
         </div>
          <div className="relative z-10 text-zinc-400 text-sm">
-          © 2024 Runmeal Inc.
+          {t('auth.footer')}
         </div>
       </div>
 
@@ -126,8 +130,8 @@ export default function LoginPage() {
              <div className="md:hidden flex justify-center mb-6">
                 <ChefHat className="h-10 w-10 text-orange-600" />
             </div>
-            <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Sign in</h1>
-            <p className="text-zinc-500 mt-2">Access your account to order.</p>
+            <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">{t('auth.login.title')}</h1>
+            <p className="text-zinc-500 mt-2">{t('auth.login.subtitle')}</p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -142,7 +146,7 @@ export default function LoginPage() {
               </div>
               <div className="relative flex justify-center text-sm">
                 <span className="bg-white px-2 text-zinc-500">
-                  Or sign in with email
+                  {t('auth.login.orEmail')}
                 </span>
               </div>
             </div>
@@ -154,9 +158,9 @@ export default function LoginPage() {
             )}
             
             <Input
-              label="Email"
+              label={t('auth.email')}
               type="email"
-              placeholder="name@example.com"
+              placeholder={t('auth.emailPlaceholder')}
               className="text-zinc-900"
               error={errors.email?.message}
               {...register('email')}
@@ -164,7 +168,7 @@ export default function LoginPage() {
 
             <div className="space-y-1">
                  <Input
-                label="Password"
+                label={t('auth.password')}
                 type="password"
                 placeholder="••••••••"
                 className="text-zinc-900"
@@ -173,7 +177,7 @@ export default function LoginPage() {
                 />
                 <div className="flex justify-end">
                     <Link href="/forgot-password" className="text-sm font-medium text-orange-600 hover:text-orange-500 hover:underline">
-                    Forgot password?
+                    {t('auth.login.forgot')}
                     </Link>
                 </div>
             </div>
@@ -190,14 +194,14 @@ export default function LoginPage() {
               size="lg"
               disabled={isRecaptchaEnabled && !recaptchaToken}
             >
-              Sign In
+              {t('auth.login.submit')}
             </Button>
           </form>
 
           <p className="text-center text-sm text-zinc-600">
-            Don&apos;t have an account?{' '}
+            {t('auth.login.noAccount')}{' '}
             <Link href="/register" className="font-medium text-orange-600 hover:text-orange-500 hover:underline">
-              Create an account
+              {t('auth.login.createAccount')}
             </Link>
           </p>
         </div>

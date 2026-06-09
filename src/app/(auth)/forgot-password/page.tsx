@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useTranslation } from 'react-i18next';
 import { AxiosError } from 'axios';
 import Image from 'next/image';
 import { ChefHat } from 'lucide-react';
@@ -14,13 +15,15 @@ import { Input } from '@/components/ui/input';
 import { authService } from '@/services/auth.service';
 import { ApiResponse } from '@/types/auth';
 
-const forgotPasswordSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-});
-
-type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
+type ForgotPasswordFormValues = {
+  email: string;
+};
 
 export default function ForgotPasswordPage() {
+  const { t } = useTranslation();
+  const forgotPasswordSchema = z.object({
+    email: z.string().email(t('auth.validation.emailInvalid')),
+  });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -39,11 +42,11 @@ export default function ForgotPasswordPage() {
     setSuccess(null);
     try {
       const response = await authService.forgotPassword(data.email);
-      setSuccess(response.message || 'If an account exists, a reset link has been sent.');
+      setSuccess(response.message || t('auth.forgot.sent'));
     } catch (err) {
       const error = err as AxiosError<ApiResponse<{ message: string }>>;
       setError(
-        error.response?.data?.message || 'Something went wrong. Please try again.'
+        error.response?.data?.message || t('auth.validation.generic')
       );
     } finally {
       setIsLoading(false);
@@ -57,16 +60,16 @@ export default function ForgotPasswordPage() {
           <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
              <ChefHat className="h-8 w-8 text-blue-600" />
           </div>
-          <h1 className="text-2xl font-bold text-zinc-900">Check Your Email</h1>
+          <h1 className="text-2xl font-bold text-zinc-900">{t('auth.forgot.checkEmailTitle')}</h1>
           <p className="text-zinc-600">
             {success}
           </p>
           <div className="pt-4">
-            <Link 
-              href="/login" 
+            <Link
+              href="/login"
               className="inline-flex h-10 items-center justify-center rounded-md bg-zinc-900 px-8 text-sm font-medium text-white shadow-sm transition-colors hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
             >
-              Back to Login
+              {t('auth.forgot.backToLogin')}
             </Link>
           </div>
         </div>
@@ -91,11 +94,11 @@ export default function ForgotPasswordPage() {
             />
           </div>
           <h2 className="text-4xl font-bold text-white leading-tight max-w-lg">
-            Forgot your password? No worries.
+            {t('auth.forgot.heroTitle')}
           </h2>
         </div>
         <div className="relative z-10 text-zinc-400 text-sm">
-          © 2024 Runmeal Inc.
+          {t('auth.footer')}
         </div>
       </div>
 
@@ -106,8 +109,8 @@ export default function ForgotPasswordPage() {
              <div className="md:hidden flex justify-center mb-6">
                 <ChefHat className="h-10 w-10 text-orange-600" />
             </div>
-            <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Reset Password</h1>
-            <p className="text-zinc-500 mt-2">Enter your email to receive a reset link.</p>
+            <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">{t('auth.forgot.title')}</h1>
+            <p className="text-zinc-500 mt-2">{t('auth.forgot.subtitle')}</p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -118,23 +121,23 @@ export default function ForgotPasswordPage() {
             )}
             
             <Input
-              label="Email"
+              label={t('auth.email')}
               type="email"
-              placeholder="name@example.com"
+              placeholder={t('auth.emailPlaceholder')}
               className="text-zinc-900"
               error={errors.email?.message}
               {...register('email')}
             />
 
             <Button type="submit" className="w-full" isLoading={isLoading} size="lg">
-              Send Reset Link
+              {t('auth.forgot.submit')}
             </Button>
           </form>
 
           <p className="text-center text-sm text-zinc-600">
-            Remember your password?{' '}
+            {t('auth.forgot.remember')}{' '}
             <Link href="/login" className="font-medium text-orange-600 hover:text-orange-500 hover:underline">
-              Sign in
+              {t('auth.forgot.signIn')}
             </Link>
           </p>
         </div>
