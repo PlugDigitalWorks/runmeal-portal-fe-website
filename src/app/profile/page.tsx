@@ -9,6 +9,7 @@ import { useUser } from '@/context/UserContext';
 import { Address } from '@/types/address';
 import { userService } from '@/services/user.service';
 import { walletService } from '@/services/wallet.service';
+import { useTranslation } from 'react-i18next';
 import { AddressForm } from '@/components/address/AddressForm';
 import { Suspense } from 'react';
 import {
@@ -25,6 +26,7 @@ import {
 function ProfileContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
   const { user, addresses, refreshAddresses, isLoading: isContextLoading } = useUser();
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -88,7 +90,7 @@ function ProfileContent() {
            await refreshAddresses();
        } catch (error) {
           console.error('Failed to delete', error);
-          alert('Failed to delete address');
+          alert(t('profile.deleteFailed'));
       }
   }
 
@@ -134,7 +136,7 @@ function ProfileContent() {
   };
 
   if (isContextLoading && !user) {
-       return <div className="min-h-screen flex items-center justify-center pt-20">Loading...</div>;
+       return <div className="min-h-screen flex items-center justify-center pt-20">{t('profile.loading')}</div>;
   }
 
   if (!user && !isContextLoading) {
@@ -153,20 +155,20 @@ function ProfileContent() {
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>Personal Info</CardTitle>
-                    <CardDescription>Your account details</CardDescription>
+                    <CardTitle>{t('profile.personalInfo')}</CardTitle>
+                    <CardDescription>{t('profile.accountDetails')}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div>
-                        <label className="text-xs font-medium text-zinc-500 uppercase">Values</label>
+                        <label className="text-xs font-medium text-zinc-500 uppercase">{t('profile.name')}</label>
                         <div className="font-medium text-zinc-900">{user?.firstName} {user?.lastName}</div>
                     </div>
                      <div>
-                        <label className="text-xs font-medium text-zinc-500 uppercase">Email</label>
+                        <label className="text-xs font-medium text-zinc-500 uppercase">{t('profile.email')}</label>
                         <div className="font-medium text-zinc-900 break-all">{user?.email}</div>
                     </div>
                      <div>
-                        <label className="text-xs font-medium text-zinc-500 uppercase pr-1">Role</label>
+                        <label className="text-xs font-medium text-zinc-500 uppercase pr-1">{t('profile.role')}</label>
                         <div className="inline-flex items-center px-2 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-medium capitalize">
                             {user?.role}
                         </div>
@@ -176,8 +178,8 @@ function ProfileContent() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Para Puan</CardTitle>
-                    <CardDescription>Cüzdan bakiyeniz</CardDescription>
+                    <CardTitle>{t('profile.loyaltyTitle')}</CardTitle>
+                    <CardDescription>{t('profile.loyaltySubtitle')}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold text-orange-600">
@@ -192,13 +194,13 @@ function ProfileContent() {
                     onClick={() => setActiveTab('addresses')}
                     className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'addresses' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-900'}`}
                 >
-                    Addresses
+                    {t('profile.tabs.addresses')}
                 </button>
                 <button
                     onClick={() => setActiveTab('orders')}
                     className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'orders' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-900'}`}
                 >
-                    Orders
+                    {t('profile.tabs.orders')}
                 </button>
             </div>
 
@@ -206,11 +208,11 @@ function ProfileContent() {
                 <div className="space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Order History</CardTitle>
+                            <CardTitle>{t('profile.orderHistory')}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             {orders.length === 0 ? (
-                                <p className="text-zinc-500 text-sm">No orders yet.</p>
+                                <p className="text-zinc-500 text-sm">{t('profile.noOrders')}</p>
                             ) : (
                                 <div className="space-y-4">
                                     {orders.map(order => (
@@ -242,7 +244,7 @@ function ProfileContent() {
                                             {expandedOrders.has(order.id) && (
                                                 <div className="pb-4 pl-12 pr-4 space-y-3">
                                                     {loadingDetails.has(order.id) ? (
-                                                        <div className="text-sm text-zinc-500 py-2">Loading details...</div>
+                                                        <div className="text-sm text-zinc-500 py-2">{t('profile.loadingDetails')}</div>
                                                     ) : orderDetails[order.id] ? (
                                                         <div className="space-y-2">
                                                             {orderDetails[order.id].items.map((item) => (
@@ -252,7 +254,7 @@ function ProfileContent() {
                                                                             <span className="font-medium text-zinc-900">{getOrderItemQty(item)}x</span> {item.productName}
                                                                         </div>
                                                                         <div className="text-xs text-zinc-500">
-                                                                            Unit: {formatCurrency(getOrderItemUnitPrice(item))}
+                                                                            {t('profile.unit')}: {formatCurrency(getOrderItemUnitPrice(item))}
                                                                         </div>
                                                                         {getOrderItemDetailLines(item).map((line) => (
                                                                             <div key={line} className="text-xs text-zinc-500 leading-relaxed">
@@ -271,17 +273,17 @@ function ProfileContent() {
                                                                     size="sm"
                                                                     onClick={() => openOrderDetails(order)}
                                                                 >
-                                                                    View order details
+                                                                    {t('profile.viewOrderDetails')}
                                                                 </Button>
                                                             </div>
                                                             <div className="border-t border-zinc-100 mt-2 pt-2 flex justify-between items-center">
-                                                                <span className="text-sm font-medium text-zinc-900">Total</span>
+                                                                <span className="text-sm font-medium text-zinc-900">{t('profile.total')}</span>
                                                                 <span className="text-base font-bold text-orange-600">{formatCurrency(orderDetails[order.id].totalPrice)}</span>
                                                             </div>
-                                                            <div className="text-xs text-zinc-500">Order #{getOrderDisplayId(orderDetails[order.id])}</div>
+                                                            <div className="text-xs text-zinc-500">{t('profile.orderNo', { id: getOrderDisplayId(orderDetails[order.id]) })}</div>
                                                         </div>
                                                     ) : (
-                                                        <div className="text-sm text-red-500">Failed to load details</div>
+                                                        <div className="text-sm text-red-500">{t('profile.failedLoadDetails')}</div>
                                                     )}
                                                 </div>
                                             )}
@@ -297,16 +299,16 @@ function ProfileContent() {
             {activeTab === 'addresses' && (
                 <div className="space-y-6">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-bold text-zinc-900">Saved Addresses</h2>
+                        <h2 className="text-xl font-bold text-zinc-900">{t('profile.savedAddresses')}</h2>
                         <Button onClick={isAddingAddress ? onCancelEdit : () => setIsAddingAddress(true)} size="sm" variant={isAddingAddress ? "outline" : "primary"}>
-                            {isAddingAddress ? <><X className="h-4 w-4 mr-2"/> Cancel</> : <><Plus className="h-4 w-4 mr-2"/> Add New</>}
+                            {isAddingAddress ? <><X className="h-4 w-4 mr-2"/> {t('profile.cancel')}</> : <><Plus className="h-4 w-4 mr-2"/> {t('profile.addNew')}</>}
                         </Button>
                     </div>
 
                     {isAddingAddress && (
                         <Card className="border-zinc-200 bg-white shadow-sm">
                             <CardHeader>
-                                <CardTitle className="text-base">{editingId ? 'Edit Address' : 'New Address'}</CardTitle>
+                                <CardTitle className="text-base">{editingId ? t('profile.editAddress') : t('profile.newAddress')}</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <AddressForm 
@@ -323,7 +325,7 @@ function ProfileContent() {
                         {addresses.length === 0 && !isAddingAddress && (
                             <div className="text-center py-12 bg-zinc-50 rounded-xl border border-dashed border-zinc-200">
                                 <MapPin className="h-10 w-10 text-zinc-300 mx-auto mb-3" />
-                                <p className="text-zinc-500">No addresses found. Add one to order.</p>
+                                <p className="text-zinc-500">{t('profile.noAddresses')}</p>
                             </div>
                         )}
 

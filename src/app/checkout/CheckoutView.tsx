@@ -20,6 +20,8 @@ import type { Address } from '@/types/address';
 import type { Branch } from '@/types/branch';
 import type { Cart, CartItem } from '@/types/cart';
 import { sanitizePositiveNumber } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 
 type ApiErrorBody = {
     message?: string | string[];
@@ -39,26 +41,26 @@ type AvailablePromotion = {
 
 const PAYMENT_METHOD_OPTIONS: Array<{
     value: PaymentMethod;
-    label: string;
-    description: string;
+    labelKey: string;
+    descriptionKey: string;
     Icon: LucideIcon;
 }> = [
     {
         value: 'ONLINE_CARD',
-        label: 'Online card',
-        description: 'Pay securely now',
+        labelKey: 'checkout.payment.onlineCard',
+        descriptionKey: 'checkout.payment.onlineCardDesc',
         Icon: CreditCard,
     },
     {
         value: 'CASH',
-        label: 'Cash',
-        description: 'Pay at delivery',
+        labelKey: 'checkout.payment.cash',
+        descriptionKey: 'checkout.payment.cashDesc',
         Icon: Banknote,
     },
     {
         value: 'CARD_ON_DELIVERY',
-        label: 'Card on delivery',
-        description: 'Pay by POS at delivery',
+        labelKey: 'checkout.payment.cardOnDelivery',
+        descriptionKey: 'checkout.payment.cardOnDeliveryDesc',
         Icon: CreditCard,
     },
 ];
@@ -137,7 +139,7 @@ const getCartItemDetailLines = (item: CartItem) => {
     return [...optionLines, ...addonLines, ...noteLine];
 };
 
-const getApiErrorMessage = (error: unknown) => {
+const getApiErrorMessage = (error: unknown, t: TFunction) => {
     const axiosError = error as AxiosError<ApiErrorBody>;
     const message = axiosError.response?.data?.message;
 
@@ -145,22 +147,25 @@ const getApiErrorMessage = (error: unknown) => {
         return message.join(' ');
     }
 
-    return message || 'Failed to complete order. Please try again.';
+    return message || t('checkout.toast.failedOrder');
 };
 
-const getCheckoutErrorHelp = (message: string) => {
+const messageIncludesPhone = (lowerMessage: string) =>
+    lowerMessage.includes('phone') || lowerMessage.includes('telefon');
+
+const getCheckoutErrorHelp = (message: string, t: TFunction) => {
     const lowerMessage = message.toLowerCase();
 
-    if (lowerMessage.includes('phone')) {
-        return 'Edit the selected address and add a phone number.';
+    if (messageIncludesPhone(lowerMessage)) {
+        return t('checkout.errorHelp.phone');
     }
 
-    if (lowerMessage.includes('deliver to your current address')) {
-        return 'Please select a different address or add a new one.';
+    if (lowerMessage.includes('deliver to your current address') || lowerMessage.includes('mevcut adres')) {
+        return t('checkout.errorHelp.currentAddress');
     }
 
-    if (lowerMessage.includes('served by this branch')) {
-        return 'Add another address or choose a cart from a branch that serves this address.';
+    if (lowerMessage.includes('served by this branch') || lowerMessage.includes('hizmet')) {
+        return t('checkout.errorHelp.served');
     }
 
     return null;
@@ -169,6 +174,7 @@ const getCheckoutErrorHelp = (message: string) => {
 
 
 export default function CheckoutView() {
+    const { t } = useTranslation();
     const { user, addresses, refreshAddresses } = useUser();
     const { carts, isCartOpen, closeCart, applyCoupon, removeCoupon, availablePromotions, checkAvailablePromotions } = useCart();
     const { selectedBranch } = useBranch();
@@ -300,14 +306,14 @@ export default function CheckoutView() {
 
 
     if (!user) {
-        return <div className="p-8 text-center">Please login to continue.</div>;
+        return <div className="p-8 text-center">{t('checkout.loginRequired')}</div>;
     }
 
     if (!selectedCart || !selectedCart.items || selectedCart.items.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-                <h1 className="text-2xl font-bold text-zinc-900">Your cart is empty</h1>
-                <Button onClick={() => router.push('/')}>Go to Home</Button>
+                <h1 className="text-2xl font-bold text-zinc-900">{t('checkout.emptyCart')}</h1>
+                <Button onClick={() => router.push('/')}>{t('checkout.goHome')}</Button>
             </div>
         );
     }
@@ -318,11 +324,11 @@ export default function CheckoutView() {
     const selectedAddress = deliverableAddresses.find(a => a.id === selectedAddressId);
     const selectedAddressHasPhone = Boolean(selectedAddress?.phoneE164?.trim());
     const editingAddress = editingAddressId ? addresses.find(a => a.id === editingAddressId) : undefined;
-    const deliveryErrorHelp = deliveryError ? getCheckoutErrorHelp(deliveryError) : null;
-    const deliveryErrorTitle = deliveryError?.toLowerCase().includes('phone')
-        ? 'Address Needs Phone Number'
-        : 'Checkout Error';
-    const branchUnavailableMessage = 'This branch cannot serve the address you selected.';
+    const deliveryErrorHelp = deliveryError ? getCheckoutErrorHelp(deliveryError, t) : null;
+    const deliveryErrorTitle = deliveryError && messageIncludesPhone(deliveryError.toLowerCase())
+        ? t('checkout.errorTitle.phone')
+        : t('checkout.errorTitle.generic');
+    const branchUnavailableMessage = t('checkout.toast.branchUnavailable');
 
     // --- Coupon Handlers ---
     const handleApplyCoupon = async () => {
@@ -370,12 +376,12 @@ export default function CheckoutView() {
         }
 
         if (isNaN(amount) || amount <= 0) {
-            toast.error('Please enter a valid amount');
+            toast.error(t('checkout.toast.validAmount'));
             return;
         }
 
         if (amount > walletBalance.balance) {
-            toast.error('Amount cannot exceed wallet balance');
+            toast.error(t('checkout.toast.exceedBalance'));
             return;
         }
 
@@ -386,7 +392,7 @@ export default function CheckoutView() {
 
         setWalletAppliedAmount(amount);
         setWalletAmountInput('');
-        toast.success('Wallet applied');
+        toast.success(t('checkout.toast.walletApplied'));
     };
 
     const handleUseMaxWallet = () => {
@@ -398,13 +404,13 @@ export default function CheckoutView() {
 
     const handleRemoveWallet = () => {
         setWalletAppliedAmount(0);
-        toast.success('Wallet removed');
+        toast.success(t('checkout.toast.walletRemoved'));
     };
 
     // --- Checkout Handler ---
     const handleCompleteOrder = async () => {
         if (!selectedCart) {
-            toast.error('No cart found');
+            toast.error(t('checkout.toast.noCart'));
             return;
         }
 
@@ -414,21 +420,21 @@ export default function CheckoutView() {
             setIsProcessing(true);
 
             if (isCheckingAddresses) {
-                const msg = 'Checking delivery availability. Please wait.';
+                const msg = t('checkout.toast.checkingAvailability');
                 setDeliveryError(msg);
                 toast.error(msg);
                 return;
             }
 
             if (!selectedAddress) {
-                const msg = 'Please select a delivery address served by this branch.';
+                const msg = t('checkout.toast.selectServedAddress');
                 setDeliveryError(msg);
                 toast.error(msg);
                 return;
             }
 
             if (!selectedAddress.phoneE164) {
-                const msg = 'Phone number is required to place an order.';
+                const msg = t('checkout.toast.phoneRequiredOrder');
                 setDeliveryError(msg);
                 toast.error(msg);
                 return;
@@ -452,14 +458,14 @@ export default function CheckoutView() {
             } else if (paymentResponse.checkoutFormContent) {
                 document.write(paymentResponse.checkoutFormContent);
             } else {
-                toast.success('Order placed successfully!');
+                toast.success(t('checkout.toast.orderPlaced'));
                 router.push('/profile?tab=orders');
                 closeCart();
             }
 
         } catch (error) {
             console.error('Order/Payment Error:', error);
-            const msg = getApiErrorMessage(error);
+            const msg = getApiErrorMessage(error, t);
             setDeliveryError(msg);
             toast.error(msg);
         } finally {
@@ -505,7 +511,7 @@ export default function CheckoutView() {
     return (
         <div className="min-h-screen bg-zinc-50 py-8 pb-32">
             <div className="container mx-auto px-4 max-w-6xl">
-                <h1 className="text-3xl font-bold text-zinc-900 mb-8">Checkout</h1>
+                <h1 className="text-3xl font-bold text-zinc-900 mb-8">{t('checkout.title')}</h1>
 
                 <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]">
                     <div className="space-y-6">
@@ -516,7 +522,7 @@ export default function CheckoutView() {
                                 <CardTitle className="flex items-center justify-between text-lg">
                                     <div className="flex items-center gap-2">
                                         <MapPin className={`h-5 w-5 ${deliveryError ? 'text-red-500' : 'text-orange-600'}`} />
-                                        <span className={deliveryError ? 'text-red-600' : ''}>Delivery Address</span>
+                                        <span className={deliveryError ? 'text-red-600' : ''}>{t('checkout.deliveryAddress')}</span>
                                     </div>
                                     {!isAddingAddress && (
                                         <Button
@@ -525,7 +531,7 @@ export default function CheckoutView() {
                                             className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
                                             onClick={() => { setIsAddingAddress(true); setDeliveryError(null); }}
                                         >
-                                            <Plus className="h-4 w-4 mr-1" /> Add New
+                                            <Plus className="h-4 w-4 mr-1" /> {t('checkout.addNew')}
                                         </Button>
                                     )}
                                 </CardTitle>
@@ -544,7 +550,7 @@ export default function CheckoutView() {
                                                     className="mt-2 text-sm font-semibold text-red-700 underline-offset-4 hover:underline"
                                                     onClick={() => setEditingAddressId(selectedAddressId)}
                                                 >
-                                                    Edit selected address
+                                                    {t('checkout.editSelectedAddress')}
                                                 </button>
                                             )}
                                         </div>
@@ -560,7 +566,7 @@ export default function CheckoutView() {
                                 ) : (
                                     <>
                                         {isCheckingAddresses ? (
-                                            <div className="py-4 text-sm text-zinc-500">Checking delivery addresses...</div>
+                                            <div className="py-4 text-sm text-zinc-500">{t('checkout.checkingAddresses')}</div>
                                         ) : deliverableAddresses.length > 0 ? (
                                             <div className="space-y-4">
                                                 {deliverableAddresses.map(addr => (
@@ -577,13 +583,13 @@ export default function CheckoutView() {
                                                                 <div className="font-semibold text-zinc-900">{addr.province}, {addr.district}</div>
                                                                 <div className="text-sm text-zinc-500 mt-1">{addr.street} No: {addr.buildingNumber}</div>
                                                                 <div className={`text-xs mt-2 ${addr.phoneE164 ? 'text-zinc-500' : 'text-red-600'}`}>
-                                                                    {addr.phoneE164 || 'Phone number missing'}
+                                                                    {addr.phoneE164 || t('checkout.phoneMissing')}
                                                                 </div>
                                                             </div>
                                                             <div className="flex shrink-0 items-center gap-2">
                                                                 <button
                                                                     type="button"
-                                                                    aria-label="Edit address"
+                                                                    aria-label={t('checkout.editAddressAria')}
                                                                     className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-white hover:text-orange-600"
                                                                     onClick={(event) => {
                                                                         event.stopPropagation();
@@ -605,11 +611,11 @@ export default function CheckoutView() {
                                             <div className="text-center py-4">
                                                 <p className="text-zinc-500 mb-4">
                                                     {addresses.length > 0
-                                                        ? 'No saved address is served by this branch.'
-                                                        : 'No address found.'}
+                                                        ? t('checkout.noServedAddress')
+                                                        : t('checkout.noAddress')}
                                                 </p>
                                                 <Button variant="outline" onClick={() => setIsAddingAddress(true)}>
-                                                    Add New Address
+                                                    {t('checkout.addNewAddress')}
                                                 </Button>
                                             </div>
                                         )}
@@ -623,24 +629,24 @@ export default function CheckoutView() {
                             <CardHeader className="pb-3 border-b border-zinc-100">
                                 <CardTitle className="flex items-center gap-2 text-lg">
                                     <UserIcon className="text-orange-600 h-5 w-5" />
-                                    Personal Information
+                                    {t('checkout.personalInfo')}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="pt-4 grid sm:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-xs font-semibold text-zinc-500 uppercase">First Name</label>
+                                    <label className="text-xs font-semibold text-zinc-500 uppercase">{t('checkout.firstName')}</label>
                                     <div className="text-zinc-900 font-medium">{user.firstName}</div>
                                 </div>
                                 <div>
-                                    <label className="text-xs font-semibold text-zinc-500 uppercase">Last Name</label>
+                                    <label className="text-xs font-semibold text-zinc-500 uppercase">{t('checkout.lastName')}</label>
                                     <div className="text-zinc-900 font-medium">{user.lastName}</div>
                                 </div>
                                 <div>
-                                    <label className="text-xs font-semibold text-zinc-500 uppercase">Email</label>
+                                    <label className="text-xs font-semibold text-zinc-500 uppercase">{t('checkout.email')}</label>
                                     <div className="text-zinc-900 font-medium">{user.email}</div>
                                 </div>
                                 <div>
-                                    <label className="text-xs font-semibold text-zinc-500 uppercase">Phone</label>
+                                    <label className="text-xs font-semibold text-zinc-500 uppercase">{t('checkout.phone')}</label>
                                     <div className="text-zinc-900 font-medium">{user.phoneNumber || '-'}</div>
                                 </div>
                             </CardContent>
@@ -651,12 +657,12 @@ export default function CheckoutView() {
                             <CardHeader className="pb-3 border-b border-zinc-100">
                                 <CardTitle className="flex items-center gap-2 text-lg">
                                     <CreditCard className="text-orange-600 h-5 w-5" />
-                                    Payment Method
+                                    {t('checkout.paymentMethod')}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="pt-4">
                                 <div className="grid gap-3 sm:grid-cols-3">
-                                    {PAYMENT_METHOD_OPTIONS.map(({ value, label, description, Icon }) => {
+                                    {PAYMENT_METHOD_OPTIONS.map(({ value, labelKey, descriptionKey, Icon }) => {
                                         const isSelected = selectedPaymentMethod === value;
 
                                         return (
@@ -674,8 +680,8 @@ export default function CheckoutView() {
                                                     <span className={`h-4 w-4 rounded-full border ${isSelected ? 'border-orange-600 bg-orange-600 shadow-[inset_0_0_0_3px_white]' : 'border-zinc-300'}`} />
                                                 </div>
                                                 <div>
-                                                    <div className="text-sm font-semibold text-zinc-900">{label}</div>
-                                                    <div className="mt-1 text-xs leading-snug text-zinc-500">{description}</div>
+                                                    <div className="text-sm font-semibold text-zinc-900">{t(labelKey)}</div>
+                                                    <div className="mt-1 text-xs leading-snug text-zinc-500">{t(descriptionKey)}</div>
                                                 </div>
                                             </button>
                                         );
@@ -689,7 +695,7 @@ export default function CheckoutView() {
                             <CardHeader className="pb-3 border-b border-zinc-100">
                                 <CardTitle className="flex items-center gap-2 text-lg">
                                     <MessageSquareText className="text-orange-600 h-5 w-5" />
-                                    Order Note
+                                    {t('checkout.orderNote')}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="pt-4">
@@ -698,7 +704,7 @@ export default function CheckoutView() {
                                     onChange={(event) => setOrderNote(event.target.value)}
                                     maxLength={1000}
                                     rows={4}
-                                    placeholder="Leave at reception, call when outside..."
+                                    placeholder={t('checkout.orderNotePlaceholder')}
                                     className="w-full resize-none rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
                                 />
                             </CardContent>
@@ -711,7 +717,7 @@ export default function CheckoutView() {
                                 <CardHeader className="pb-3 border-b border-zinc-100">
                                     <CardTitle className="flex items-center gap-2 text-lg">
                                         <Ticket className="text-orange-600 h-5 w-5" />
-                                        Promotions
+                                        {t('checkout.promotions')}
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="pt-4">
@@ -727,7 +733,7 @@ export default function CheckoutView() {
                                                 </div>
                                                 <button
                                                     type="button"
-                                                    aria-label="Remove promotion"
+                                                    aria-label={t('checkout.removePromotion')}
                                                     onClick={handleRemoveCoupon}
                                                     disabled={isCouponLoading}
                                                     className="shrink-0 text-green-700 hover:text-green-900 bg-green-100 hover:bg-green-200 p-1.5 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -740,14 +746,14 @@ export default function CheckoutView() {
                                                 onClick={() => setShowCouponModal(true)}
                                                 className="w-full text-center text-orange-600 text-sm hover:underline"
                                             >
-                                                View Available Coupons
+                                                {t('checkout.viewCoupons')}
                                             </button>
                                             <div className="flex gap-2">
                                                 <input
                                                     type="text"
                                                     value={couponCode}
                                                     onChange={(e) => setCouponCode(e.target.value)}
-                                                    placeholder="Enter coupon code"
+                                                    placeholder={t('checkout.couponPlaceholder')}
                                                     className="min-w-0 flex-1 border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 uppercase placeholder:normal-case"
                                                 />
                                                 <button
@@ -755,7 +761,7 @@ export default function CheckoutView() {
                                                     disabled={!couponCode.trim() || isCouponLoading}
                                                     className="bg-zinc-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                                 >
-                                                    Apply
+                                                    {t('checkout.apply')}
                                                 </button>
                                             </div>
                                         </div>
@@ -765,14 +771,14 @@ export default function CheckoutView() {
                                                 onClick={() => setShowCouponModal(true)}
                                                 className="w-full text-center text-orange-600 text-sm hover:underline"
                                             >
-                                                View Available Coupons
+                                                {t('checkout.viewCoupons')}
                                             </button>
                                             <div className="flex gap-2">
                                                 <input
                                                     type="text"
                                                     value={couponCode}
                                                     onChange={(e) => setCouponCode(e.target.value)}
-                                                    placeholder="Enter coupon code"
+                                                    placeholder={t('checkout.couponPlaceholder')}
                                                     className="min-w-0 flex-1 border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 uppercase placeholder:normal-case"
                                                 />
                                                 <button
@@ -780,7 +786,7 @@ export default function CheckoutView() {
                                                     disabled={!couponCode.trim() || isCouponLoading}
                                                     className="bg-zinc-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                                 >
-                                                    Apply
+                                                    {t('checkout.apply')}
                                                 </button>
                                             </div>
                                         </div>
@@ -793,12 +799,12 @@ export default function CheckoutView() {
                                 <CardHeader className="pb-3 border-b border-zinc-100">
                                     <CardTitle className="flex items-center gap-2 text-lg">
                                         <Wallet className="text-orange-600 h-5 w-5" />
-                                        Wallet
+                                        {t('checkout.wallet')}
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="flex flex-1 flex-col justify-between gap-4 pt-4">
                                     <div className="rounded-lg border border-orange-100 bg-orange-50/60 px-4 py-3">
-                                        <span className="text-xs font-medium uppercase text-orange-700">Available Balance</span>
+                                        <span className="text-xs font-medium uppercase text-orange-700">{t('checkout.availableBalance')}</span>
                                         <div className="mt-1 text-2xl font-bold leading-none text-zinc-900">
                                             ₺{walletBalance?.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                                         </div>
@@ -807,7 +813,7 @@ export default function CheckoutView() {
                                     {walletAppliedAmount > 0 ? (
                                         <div className="space-y-2">
                                             <div className="flex items-center justify-between bg-green-50 text-green-700 p-3 rounded-lg border border-green-200">
-                                                <span className="font-medium text-sm">Used: ₺{walletAppliedAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                                                <span className="font-medium text-sm">{t('checkout.used')}: ₺{walletAppliedAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
                                                 <button
                                                     onClick={handleRemoveWallet}
                                                     className="text-green-700 hover:text-green-900 bg-green-100 hover:bg-green-200 p-1.5 rounded-full transition-colors"
@@ -816,7 +822,7 @@ export default function CheckoutView() {
                                                 </button>
                                             </div>
                                             <p className="text-xs text-green-600 text-right">
-                                                -₺{walletAppliedAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} applied
+                                                -₺{walletAppliedAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} {t('checkout.applied')}
                                             </p>
                                         </div>
                                     ) : (
@@ -828,7 +834,7 @@ export default function CheckoutView() {
                                                     inputMode="decimal"
                                                     value={walletAmountInput}
                                                     onChange={(e) => setWalletAmountInput(sanitizePositiveNumber(e.target.value, walletAmountInput))}
-                                                    placeholder="Amount to use"
+                                                    placeholder={t('checkout.amountToUse')}
                                                     className="min-w-0 border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                                 />
                                                 <button
@@ -836,7 +842,7 @@ export default function CheckoutView() {
                                                     disabled={!walletBalance || walletBalance.balance <= 0 || !walletAmountInput}
                                                     className="bg-zinc-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                                 >
-                                                    Apply
+                                                    {t('checkout.apply')}
                                                 </button>
                                             </div>
                                             <button
@@ -844,7 +850,7 @@ export default function CheckoutView() {
                                                 disabled={!walletBalance || walletBalance.balance <= 0}
                                                 className="w-full bg-white text-orange-600 border border-orange-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                             >
-                                                Use all balance
+                                                {t('checkout.useAllBalance')}
                                             </button>
                                         </div>
                                     )}
@@ -859,7 +865,7 @@ export default function CheckoutView() {
                         <div className="sticky top-24 space-y-6">
                             <Card className="border-zinc-200 shadow-sm overflow-hidden">
                                 <CardHeader className="bg-zinc-50 border-b border-zinc-100 py-4">
-                                    <CardTitle className="text-lg">Your Order</CardTitle>
+                                    <CardTitle className="text-lg">{t('checkout.yourOrder')}</CardTitle>
                                 </CardHeader>
                                 <CardContent className="p-0">
                                     <div className="max-h-[300px] overflow-y-auto p-4 space-y-4">
@@ -899,25 +905,25 @@ export default function CheckoutView() {
                                                 className="flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm font-semibold text-zinc-900 transition-colors hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
                                             >
                                                 <Plus className="h-4 w-4" />
-                                                Add more items
+                                                {t('checkout.addMoreItems')}
                                             </button>
                                         </div>
                                     )}
                                     <div className="p-4 bg-zinc-50 border-t border-zinc-100 space-y-2 text-sm">
                                         <div className="flex justify-between text-zinc-600">
-                                            <span>Subtotal</span>
+                                            <span>{t('checkout.subtotal')}</span>
                                             <span>₺{subtotal.toFixed(2)}</span>
                                         </div>
                                         <div className="flex justify-between text-zinc-600">
-                                            <span>Delivery Fee</span>
-                                            <span className="text-green-600">Free</span>
+                                            <span>{t('checkout.deliveryFee')}</span>
+                                            <span className="text-green-600">{t('checkout.free')}</span>
                                         </div>
 
                                         {selectedCart?.discountAmount && selectedCart.discountAmount > 0 ? (
                                             <div className="flex justify-between text-sm text-green-600">
                                                 <div className="flex items-center gap-1">
                                                     <Ticket size={14} />
-                                                    <span>Discount</span>
+                                                    <span>{t('checkout.discount')}</span>
                                                 </div>
                                                 <span>-₺{selectedCart.discountAmount.toFixed(2)}</span>
                                             </div>
@@ -927,14 +933,14 @@ export default function CheckoutView() {
                                             <div className="flex justify-between text-sm text-orange-600">
                                                 <div className="flex items-center gap-1">
                                                     <Wallet size={14} />
-                                                    <span>Wallet Used</span>
+                                                    <span>{t('checkout.walletUsed')}</span>
                                                 </div>
                                                 <span>-₺{walletAppliedAmount.toFixed(2)}</span>
                                             </div>
                                         ) : null}
 
                                         <div className="flex justify-between text-zinc-900 font-bold pt-2 border-t border-zinc-200 mt-2 text-base">
-                                            <span>Total</span>
+                                            <span>{t('checkout.total')}</span>
                                             <span className="text-orange-600">₺{finalTotal.toFixed(2)}</span>
                                         </div>
                                     </div>
@@ -949,7 +955,7 @@ export default function CheckoutView() {
             <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-zinc-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50">
                 <div className="container mx-auto max-w-6xl flex items-center justify-between gap-4">
                     <div className="hidden sm:block">
-                        <div className="text-sm text-zinc-500">Total to Pay</div>
+                        <div className="text-sm text-zinc-500">{t('checkout.totalToPay')}</div>
                         <div className="text-xl font-bold text-orange-600">₺{finalTotal.toFixed(2)}</div>
                     </div>
 
@@ -962,10 +968,10 @@ export default function CheckoutView() {
                         {isProcessing ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Processing...
+                                {t('checkout.processing')}
                             </>
                         ) : (
-                            'Complete Order'
+                            t('checkout.completeOrder')
                         )}
                     </Button>
                 </div>
@@ -997,11 +1003,12 @@ function AddressEditModal({ address, onClose, onSuccess }: {
     onClose: () => void;
     onSuccess: () => Promise<void>;
 }) {
+    const { t } = useTranslation();
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
             <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-lg">
                 <div className="sticky top-0 z-10 flex items-center justify-between border-b border-zinc-100 bg-white p-4">
-                    <h3 className="text-lg font-bold text-zinc-900">Edit Address</h3>
+                    <h3 className="text-lg font-bold text-zinc-900">{t('checkout.editAddress')}</h3>
                     <button
                         type="button"
                         onClick={onClose}
@@ -1029,6 +1036,7 @@ function CouponListModal({ onClose, onApply, availablePromotions, checkAvailable
     availablePromotions: AvailablePromotion[];
     checkAvailablePromotions: () => Promise<void>;
 }) {
+    const { t } = useTranslation();
     const hasLoadedPromotionsRef = useRef(false);
 
     useEffect(() => {
@@ -1044,14 +1052,14 @@ function CouponListModal({ onClose, onApply, availablePromotions, checkAvailable
         <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
             <div className="bg-white rounded-xl shadow-lg w-full max-w-md max-h-[80vh] flex flex-col">
                 <div className="p-4 border-b flex items-center justify-between">
-                    <h3 className="font-bold text-lg">Available Coupons</h3>
+                    <h3 className="font-bold text-lg">{t('checkout.availableCoupons')}</h3>
                     <button onClick={onClose} className="text-zinc-500 hover:text-zinc-800">
                         <X size={20} />
                     </button>
                 </div>
                 <div className="p-4 overflow-y-auto">
                     {availablePromotions.length === 0 ? (
-                        <p className="text-center text-zinc-500 py-4">No available coupons found.</p>
+                        <p className="text-center text-zinc-500 py-4">{t('checkout.noCoupons')}</p>
                     ) : (
                         <div className="space-y-3">
                             {availablePromotions.map((item, idx) => (
@@ -1063,7 +1071,7 @@ function CouponListModal({ onClose, onApply, availablePromotions, checkAvailable
                                                 onClick={() => onApply(item.promotion.couponCode)}
                                                 className="text-xs bg-green-600 text-white px-3 py-1 rounded-full hover:bg-green-700"
                                             >
-                                                Apply
+                                                {t('checkout.apply')}
                                             </button>
                                         )}
                                     </div>
@@ -1071,7 +1079,7 @@ function CouponListModal({ onClose, onApply, availablePromotions, checkAvailable
                                     {!item.applicable && (
                                         <p className="text-xs text-red-500">
                                             {item.unapplicableReason === 'ALREADY_USED'
-                                                ? 'This coupon has already been used'
+                                                ? t('checkout.alreadyUsed')
                                                 : item.unapplicableReason}
                                         </p>
                                     )}
