@@ -1,7 +1,7 @@
 import { branchService } from '@/services/branch.service';
 import { catalogService } from '@/services/catalog.service';
 import { BranchView } from '@/components/branches/BranchView';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { Branch } from '@/types/branch';
 import { Category } from '@/types/category';
 import { Product } from '@/types/product';
@@ -28,6 +28,11 @@ export default async function BranchPage({
   if (!branch) {
     console.error('Branch not found', branch);
     return notFound();
+  }
+
+  // Redirect id-based URLs to the canonical /:brandSlug/:branchSlug URL.
+  if (branch.brandSlug && branch.slug) {
+    redirect(`/${branch.brandSlug}/${branch.slug}`);
   }
 
   // Branch-scoped menu so products/categories disabled for this branch are excluded.
