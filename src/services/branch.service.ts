@@ -18,5 +18,12 @@ export const branchService = {
   async getBranchDetails(branchId: string) {
     const response = await api.get<ApiResponse<Branch>>(`/branches/${branchId}`);
     return response.data.data;
+  },
+
+  async getBranchBySlugs(brandSlug: string, branchSlug: string) {
+    const response = await api.get<ApiResponse<Branch>>(
+      `/public/${encodeURIComponent(brandSlug)}/${encodeURIComponent(branchSlug)}`
+    );
+    return response.data.data;
   }
 };

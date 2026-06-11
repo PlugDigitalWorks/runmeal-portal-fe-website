@@ -59,6 +59,23 @@ export const catalogService = {
     return response.data.data;
   },
 
+  /**
+   * Branch-scoped catalog with branch-level overrides applied (products/categories
+   * disabled for this specific branch are excluded by the API). Flattens the nested
+   * menu response into the separate `categories` / `products` arrays the UI consumes.
+   */
+  async getBranchCatalog(branchId: string): Promise<{ categories: Category[]; products: Product[] }> {
+    const menu = await this.getBranchMenu(branchId);
+    const menuCategories = menu?.categories ?? [];
+
+    const categories: Category[] = menuCategories;
+    const products: Product[] = menuCategories.flatMap(category =>
+      (category.products ?? []).map(product => ({ ...product, branchId }))
+    );
+
+    return { categories, products };
+  },
+
   async getProduct(branchId: string, productId: string) {
     const response = await api.get<ApiResponse<Product>>(`/products/${productId}`, {
       headers: { 'x-branch-id': branchId }

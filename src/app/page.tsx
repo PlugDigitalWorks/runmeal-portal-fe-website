@@ -117,9 +117,9 @@ export default function Home() {
             ) : branches.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {branches.map(branch => (
-                        <Link 
-                            key={branch.id} 
-                            href={`/branches/${branch.id}`}
+                        <Link
+                            key={branch.id}
+                            href={branch.brandSlug && branch.slug ? `/${branch.brandSlug}/${branch.slug}` : `/branches/${branch.id}`}
                             className="group bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-zinc-100 block"
                         >
                             <div className="h-40 bg-zinc-100 relative">

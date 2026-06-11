@@ -1,6 +1,8 @@
 export interface Branch {
   id: string;
   name: string;
+  slug?: string;
+  brandSlug?: string | null;
   addressText: string;
   deliveryRadiusM: number;
   locationGeog: {

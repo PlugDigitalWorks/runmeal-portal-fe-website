@@ -6,35 +6,33 @@ import { Branch } from '@/types/branch';
 import { Category } from '@/types/category';
 import { Product } from '@/types/product';
 
-export default async function BranchPage({
+export default async function BranchBySlugPage({
   params,
 }: {
-  params: Promise<{ branchId: string }>;
-  searchParams: Promise<{ categoryId?: string }>;
+  params: Promise<{ brandSlug: string; branchSlug: string }>;
 }) {
-  const { branchId } = await params;
-  // const { categoryId } = await searchParams; // Filter is now client side only
+  const { brandSlug, branchSlug } = await params;
 
   let branch: Branch | undefined;
-  let categories: Category[] = [];
-  let products: Product[] = [];
 
   try {
-    branch = await branchService.getBranchDetails(branchId);
+    branch = await branchService.getBranchBySlugs(brandSlug, branchSlug);
   } catch (err) {
-    console.error(`FAILED to fetch Branch Details for ID: ${branchId}`, err);
+    console.error(`FAILED to fetch branch for ${brandSlug}/${branchSlug}`, err);
   }
 
   if (!branch) {
-    console.error('Branch not found', branch);
     return notFound();
   }
+
+  let categories: Category[] = [];
+  let products: Product[] = [];
 
   // Branch-scoped menu so products/categories disabled for this branch are excluded.
   try {
     ({ categories, products } = await catalogService.getBranchCatalog(branch.id));
   } catch (err) {
-    console.error(`FAILED to fetch branch menu for branch: ${branchId}`, err);
+    console.error(`FAILED to fetch branch menu for branch: ${branch.id}`, err);
     categories = [];
     products = [];
   }
