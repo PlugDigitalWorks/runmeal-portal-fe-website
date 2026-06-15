@@ -18,6 +18,11 @@ if (!i18n.isInitialized) {
         tr: { common: tr },
         en: { common: en },
       },
+      // Force a deterministic initial language so the server-rendered HTML and
+      // the first client render match. The detected language (localStorage /
+      // navigator) is applied after hydration in I18nProvider to avoid a
+      // hydration mismatch.
+      lng: DEFAULT_LANGUAGE,
       fallbackLng: DEFAULT_LANGUAGE,
       supportedLngs: SUPPORTED_LANGUAGES,
       defaultNS: 'common',
