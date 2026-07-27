@@ -33,7 +33,8 @@ export interface Cart {
   totalCartPrice?: number;
   discountAmount?: number;
   finalPrice?: number;
-  appliedPromotion?: CartPromotion;
+  /** Single source of truth for every promotion currently applied to the cart. */
+  appliedPromotions?: AppliedPromotion[];
   items?: CartItem[];
   isActive?: boolean;
   createdAt?: string;
@@ -41,13 +42,52 @@ export interface Cart {
   deletedAt?: string | null;
 }
 
-export interface CartPromotion {
+/** Loyalty provider that owns a promotion. Absent/null means an internal Runmeal promotion. */
+export const REKONECT_PROVIDER = 'REKONECT';
+
+export interface AppliedPromotion {
   id: string;
   name: string;
-  description: string | null;
-  pointType: 'PERCENTAGE' | 'FIXED';
-  pointValue: number;
+  description?: string | null;
+  creditType?: string | null;
+  creditValue?: number | null;
+  externalProvider?: string | null;
 }
+
+export interface PromotionAssetDetails {
+  image?: string | null;
+}
+
+export interface AvailablePromotionDetails {
+  id: string;
+  name: string;
+  description?: string | null;
+  /** Internal Runmeal promotions are applied by coupon code; external ones by `id`. */
+  couponCode?: string | null;
+  creditType?: string | null;
+  creditValue?: number | null;
+  externalProvider?: string | null;
+  status?: string | null;
+  raw?: { assetDetails?: PromotionAssetDetails | null } | null;
+}
+
+export interface AvailablePromotion {
+  applicable: boolean;
+  unapplicableReason?: string;
+  promotion: AvailablePromotionDetails;
+}
+
+export const isExternalPromotion = (
+  promotion: { externalProvider?: string | null } | null | undefined,
+) => promotion?.externalProvider === REKONECT_PROVIDER;
+
+/** Stable id for a cart across the `id` / `cartId` response variants. */
+export const getCartId = (cart: Cart | null | undefined) => cart?.cartId || cart?.id || '';
+
+export const getPromotionImage = (promotion: AvailablePromotionDetails) => {
+  const image = promotion.raw?.assetDetails?.image;
+  return typeof image === 'string' && image.trim() ? image : null;
+};
 
 export interface AddItemDto {
   productId: string;

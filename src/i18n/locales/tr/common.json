@@ -183,6 +183,11 @@
       "orderPlaced": "Sipariş başarıyla verildi!",
       "branchUnavailable": "Bu şube seçtiğiniz adrese hizmet veremiyor.",
       "failedOrder": "Sipariş tamamlanamadı. Lütfen tekrar deneyin."
+    },
+    "promotionsChanged": {
+      "title": "Sepet toplamı güncellendi",
+      "description": "Kampanyalar yeniden doğrulandı ve ödenecek tutar değişmiş olabilir. Lütfen güncel toplamı onaylayın.",
+      "confirm": "Güncel toplamı onaylıyorum"
     }
   },
   "product": {
@@ -232,6 +237,34 @@
       "couponApplyFailed": "Kupon uygulanamadı",
       "couponRemoved": "Kupon kaldırıldı",
       "couponRemoveFailed": "Kupon kaldırılamadı"
+    },
+    "discount": "İndirim",
+    "finalTotal": "Ödenecek Tutar",
+    "loyalty": {
+      "title": "Kampanyalar",
+      "providerLabel": "Rekonect",
+      "apply": "Uygula",
+      "remove": "Kaldır",
+      "removeAll": "Tümünü kaldır",
+      "empty": "Bu sepet için kullanılabilir kampanya bulunmuyor.",
+      "loadError": "Kampanyalar yüklenemedi.",
+      "retry": "Tekrar dene",
+      "conditionsHint": "Bu kampanyanın sepet koşulları henüz sağlanmıyor olabilir.",
+      "toast": {
+        "applied": "Kampanya sepete uygulandı",
+        "applyFailed": "Kampanya uygulanamadı",
+        "removed": "Kampanya kaldırıldı",
+        "removeFailed": "Kampanya kaldırılamadı"
+      },
+      "errors": {
+        "LOYALTY_PROMOTION_NOT_APPLICABLE": "Bu kampanyanın sepet koşulları henüz sağlanmıyor.",
+        "LOYALTY_PROMOTION_NOT_OWNED": "Bu kampanya hesabınızda kullanılamıyor.",
+        "LOYALTY_PROMOTION_INACTIVE": "Bu kampanya artık aktif değil.",
+        "LOYALTY_PROMOTIONS_NOT_COMBINABLE": "Seçtiğiniz kampanyalar birlikte kullanılamıyor.",
+        "LOYALTY_PROMOTION_NOT_FOUND_ON_CART": "Bu kampanya sepette uygulanmış görünmüyor.",
+        "LOYALTY_PROMOTION_NO_LONGER_APPLICABLE": "Sepet değiştiği için bir veya daha fazla kampanya kaldırıldı.",
+        "LOYALTY_EXTERNAL_PROVIDER_NOT_ACTIVE": "Bu restoran için harici kampanyalar kullanılamıyor."
+      }
     }
   },
   "address": {

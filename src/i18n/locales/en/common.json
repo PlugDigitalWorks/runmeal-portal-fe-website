@@ -183,6 +183,11 @@
       "orderPlaced": "Order placed successfully!",
       "branchUnavailable": "This branch cannot serve the address you selected.",
       "failedOrder": "Failed to complete order. Please try again."
+    },
+    "promotionsChanged": {
+      "title": "Cart total updated",
+      "description": "Campaigns were re-validated and the amount due may have changed. Please confirm the updated total.",
+      "confirm": "I confirm the updated total"
     }
   },
   "product": {
@@ -232,6 +237,34 @@
       "couponApplyFailed": "Failed to apply coupon",
       "couponRemoved": "Coupon removed",
       "couponRemoveFailed": "Failed to remove coupon"
+    },
+    "discount": "Discount",
+    "finalTotal": "Total to pay",
+    "loyalty": {
+      "title": "Campaigns",
+      "providerLabel": "Rekonect",
+      "apply": "Apply",
+      "remove": "Remove",
+      "removeAll": "Remove all",
+      "empty": "No campaigns are available for this cart.",
+      "loadError": "Campaigns could not be loaded.",
+      "retry": "Try again",
+      "conditionsHint": "This campaign may not meet the cart conditions yet.",
+      "toast": {
+        "applied": "Campaign applied to your cart",
+        "applyFailed": "Campaign could not be applied",
+        "removed": "Campaign removed",
+        "removeFailed": "Campaign could not be removed"
+      },
+      "errors": {
+        "LOYALTY_PROMOTION_NOT_APPLICABLE": "This campaign does not meet the cart conditions yet.",
+        "LOYALTY_PROMOTION_NOT_OWNED": "This campaign is not available on your account.",
+        "LOYALTY_PROMOTION_INACTIVE": "This campaign is no longer active.",
+        "LOYALTY_PROMOTIONS_NOT_COMBINABLE": "The campaigns you selected cannot be used together.",
+        "LOYALTY_PROMOTION_NOT_FOUND_ON_CART": "This campaign does not appear to be applied to the cart.",
+        "LOYALTY_PROMOTION_NO_LONGER_APPLICABLE": "One or more campaigns were removed because your cart changed.",
+        "LOYALTY_EXTERNAL_PROVIDER_NOT_ACTIVE": "External campaigns are not available for this restaurant."
+      }
     }
   },
   "address": {

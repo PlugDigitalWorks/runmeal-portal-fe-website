@@ -210,9 +210,19 @@ export function CartDrawer() {
 
                                             {/* Footer */}
                                             <div className="border-t border-zinc-100 pt-3">
-                                                <div className="flex justify-between items-center mb-3">
+                                                <div className="flex justify-between items-center mb-1">
                                                     <span className="text-sm text-zinc-500">{t('cart.subtotal')}</span>
-                                                    <span className="font-bold text-zinc-900">₺{cart.totalCartPrice?.toFixed(2) ?? '0.00'}</span>
+                                                    <span className="text-sm text-zinc-900">₺{cart.totalCartPrice?.toFixed(2) ?? '0.00'}</span>
+                                                </div>
+                                                {cart.discountAmount && cart.discountAmount > 0 ? (
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <span className="text-sm text-zinc-500">{t('cart.discount')}</span>
+                                                        <span className="text-sm text-green-600">-₺{cart.discountAmount.toFixed(2)}</span>
+                                                    </div>
+                                                ) : null}
+                                                <div className="flex justify-between items-center mb-3">
+                                                    <span className="text-sm text-zinc-500">{t('cart.finalTotal')}</span>
+                                                    <span className="font-bold text-zinc-900">₺{(cart.finalPrice ?? cart.totalCartPrice ?? 0).toFixed(2)}</span>
                                                 </div>
                                                 <div className="space-y-2">
                                                     <Button

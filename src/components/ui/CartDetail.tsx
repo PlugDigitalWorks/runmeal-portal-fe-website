@@ -1,11 +1,12 @@
 'use client';
 
-import { Cart, CartItem } from '@/types/cart';
+import { Cart, CartItem, getCartId } from '@/types/cart';
 import { Branch } from '@/types/branch';
 import { Button } from '@/components/ui/button';
 import { X, Trash2, Plus, Minus } from 'lucide-react';
 import Image from 'next/image';
 import { DEFAULT_PRODUCT_IMAGE } from '@/lib/constants';
+import { CartPromotions } from '@/components/cart/CartPromotions';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
@@ -22,9 +23,11 @@ export function CartDetail({ cart, branch, onClose }: CartDetailProps) {
     const { updateQty, removeItem } = useCart();
     const router = useRouter();
 
+    // Every amount below comes from the backend; the client never computes discounts.
+    const cartId = getCartId(cart);
     const cartTotal = cart.totalCartPrice || 0;
-
-    const finalTotal = Math.max(0, cartTotal); 
+    const discountAmount = cart.discountAmount || 0;
+    const finalTotal = cart.finalPrice ?? cartTotal;
 
     const handleQtyChange = (item: CartItem, change: number) => {
         const newQty = item.qty + change;
@@ -113,11 +116,28 @@ export function CartDetail({ cart, branch, onClose }: CartDetailProps) {
                         </button>
                     </div>
 
+                    {/* Loyalty Campaigns (Rekonect) */}
+                    {cartId ? (
+                        <div className="bg-white rounded-xl p-4 border border-zinc-100 shadow-sm">
+                            <CartPromotions cartId={cartId} appliedPromotions={cart.appliedPromotions} />
+                        </div>
+                    ) : null}
+
                     {/* Cost Summary */}
                      <div className="bg-white rounded-xl p-4 border border-zinc-100 shadow-sm space-y-2 text-sm">
                           <div className="flex justify-between text-zinc-900">
                              <span>{t('cart.subtotal')}</span>
                              <span>₺{cartTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                         </div>
+                         {discountAmount > 0 ? (
+                             <div className="flex justify-between text-green-600">
+                                 <span>{t('cart.discount')}</span>
+                                 <span>-₺{discountAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                             </div>
+                         ) : null}
+                         <div className="flex justify-between border-t border-zinc-100 pt-2 font-semibold text-zinc-900">
+                             <span>{t('cart.finalTotal')}</span>
+                             <span>₺{finalTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
                          </div>
                     </div>
                 </div>
