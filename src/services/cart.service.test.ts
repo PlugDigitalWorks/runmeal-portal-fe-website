@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { api } from '@/lib/axios';
+import { LoyaltyProviderType } from '@/types/cart';
 import { cartService } from './cart.service';
 
 vi.mock('@/lib/axios', () => ({
@@ -21,20 +22,24 @@ const cartResponse = {
       totalCartPrice: 270,
       discountAmount: 89,
       finalPrice: 181,
-      appliedPromotions: [{ id: 'promo-1', name: 'Kampanya', externalProvider: 'REKONECT' }],
+      appliedPromotions: [
+        { type: LoyaltyProviderType.REKONECT, promotionCode: 'fnftNQHm1VH42bjNlOZ2', name: 'Kampanya' },
+      ],
       items: [],
     },
   },
 };
 
-describe('cartService external promotions', () => {
+describe('cartService promotions', () => {
   beforeEach(() => {
     mockedApi.get.mockReset();
     mockedApi.post.mockReset();
   });
 
   it('lists available promotions for the cart and order type', async () => {
-    mockedApi.get.mockResolvedValue({ data: { data: [{ applicable: true, promotion: { id: 'p1' } }] } });
+    mockedApi.get.mockResolvedValue({
+      data: { data: [{ type: LoyaltyProviderType.REKONECT, promotionCode: 'p1', applicable: true }] },
+    });
 
     const result = await cartService.getAvailablePromotions('cart-1', 'DELIVERY');
 
@@ -50,34 +55,59 @@ describe('cartService external promotions', () => {
     await expect(cartService.getAvailablePromotions('cart-1')).resolves.toEqual([]);
   });
 
-  it('applies an external promotion with the promotion id as assetKey', async () => {
+  it('applies a Rekonect campaign by echoing back type and promotionCode', async () => {
     mockedApi.post.mockResolvedValue(cartResponse);
 
-    const cart = await cartService.applyExternalPromotion('cart-1', 'U4OfQui9KLHxDcuFq37t');
+    const cart = await cartService.applyPromotion('cart-1', {
+      type: LoyaltyProviderType.REKONECT,
+      promotionCode: 'fnftNQHm1VH42bjNlOZ2',
+    });
 
-    expect(mockedApi.post).toHaveBeenCalledWith('/carts/cart-1/apply-external-promotion', {
-      assetKey: 'U4OfQui9KLHxDcuFq37t',
+    expect(mockedApi.post).toHaveBeenCalledWith('/carts/cart-1/promotions/apply', {
+      type: 'REKONECT',
+      promotionCode: 'fnftNQHm1VH42bjNlOZ2',
       orderType: 'DELIVERY',
     });
     expect(cart.finalPrice).toBe(181);
     expect(cart.appliedPromotions).toHaveLength(1);
   });
 
-  it('removes a single external promotion by assetKey', async () => {
+  it('applies an internal coupon through the very same endpoint', async () => {
     mockedApi.post.mockResolvedValue(cartResponse);
 
-    await cartService.removeExternalPromotion('cart-1', 'asset-9');
+    await cartService.applyPromotion('cart-1', {
+      type: LoyaltyProviderType.INTERNAL,
+      promotionCode: 'WELCOME10',
+    });
 
-    expect(mockedApi.post).toHaveBeenCalledWith('/carts/cart-1/remove-external-promotion', {
-      assetKey: 'asset-9',
+    expect(mockedApi.post).toHaveBeenCalledWith('/carts/cart-1/promotions/apply', {
+      type: 'INTERNAL',
+      promotionCode: 'WELCOME10',
+      orderType: 'DELIVERY',
     });
   });
 
-  it('removes every external promotion when no assetKey is given', async () => {
+  it('removes a single promotion by its code', async () => {
     mockedApi.post.mockResolvedValue(cartResponse);
 
-    await cartService.removeExternalPromotion('cart-1');
+    await cartService.removePromotion('cart-1', {
+      type: LoyaltyProviderType.REKONECT,
+      promotionCode: 'asset-9',
+    });
 
-    expect(mockedApi.post).toHaveBeenCalledWith('/carts/cart-1/remove-external-promotion', {});
+    expect(mockedApi.post).toHaveBeenCalledWith('/carts/cart-1/promotions/remove', {
+      type: 'REKONECT',
+      promotionCode: 'asset-9',
+    });
+  });
+
+  it('removes every promotion of a provider when no code is given', async () => {
+    mockedApi.post.mockResolvedValue(cartResponse);
+
+    await cartService.removePromotion('cart-1', { type: LoyaltyProviderType.REKONECT });
+
+    expect(mockedApi.post).toHaveBeenCalledWith('/carts/cart-1/promotions/remove', {
+      type: 'REKONECT',
+    });
   });
 });

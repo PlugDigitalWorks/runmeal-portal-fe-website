@@ -8,6 +8,7 @@ import {
   isCartStaleLoyaltyError,
   isLoyaltyError,
   resolveLoyaltyErrorMessage,
+  resolveUnapplicableReason,
 } from './loyalty-errors';
 
 const apiError = (
@@ -98,5 +99,14 @@ describe('loyalty error helpers', () => {
   it('recognises loyalty errors coming back from checkout validation', () => {
     expect(isLoyaltyError(apiError('LOYALTY_PROMOTIONS_NOT_COMBINABLE'))).toBe(true);
     expect(isLoyaltyError(apiError('PAYMENT_FAILED'))).toBe(false);
+  });
+
+  it('maps a known unapplicable reason and passes unknown ones straight through', () => {
+    const mapped = (key: string) =>
+      key === 'cart.loyalty.unapplicableReasons.ALREADY_USED' ? 'Bu kupon daha önce kullanılmış.' : key;
+
+    expect(resolveUnapplicableReason('ALREADY_USED', mapped)).toBe('Bu kupon daha önce kullanılmış.');
+    expect(resolveUnapplicableReason('MIN_BASKET_NOT_REACHED', mapped)).toBe('MIN_BASKET_NOT_REACHED');
+    expect(resolveUnapplicableReason(null, mapped)).toBeNull();
   });
 });

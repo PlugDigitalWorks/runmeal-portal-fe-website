@@ -87,3 +87,18 @@ export const resolveLoyaltyErrorMessage = (
 
   return getApiErrorMessage(error, translate(fallbackKey));
 };
+
+/**
+ * User facing copy for `CartPromotion.unapplicableReason`. Known reason codes get
+ * mapped copy; anything else is shown as the backend sent it.
+ */
+export const resolveUnapplicableReason = (
+  reason: string | null | undefined,
+  translate: (key: string) => string,
+) => {
+  if (!reason) return null;
+
+  const key = `cart.loyalty.unapplicableReasons.${reason}`;
+  const translated = translate(key);
+  return translated === key ? reason : translated;
+};

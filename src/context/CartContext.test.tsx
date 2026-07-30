@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CartProvider, useCart } from './CartContext';
 import { cartService } from '@/services/cart.service';
-import type { Cart } from '@/types/cart';
+import { LoyaltyProviderType, promotionKey, type Cart, type CartPromotion } from '@/types/cart';
 
 vi.mock('@/services/cart.service', () => ({
   cartService: {
@@ -13,11 +13,9 @@ vi.mock('@/services/cart.service', () => ({
     setQty: vi.fn(),
     removeItem: vi.fn(),
     clearCart: vi.fn(),
+    getAvailablePromotions: vi.fn(),
     applyPromotion: vi.fn(),
     removePromotion: vi.fn(),
-    getAvailablePromotions: vi.fn(),
-    applyExternalPromotion: vi.fn(),
-    removeExternalPromotion: vi.fn(),
   },
 }));
 
@@ -75,26 +73,31 @@ const buildCart = (overrides: Partial<Cart> = {}): Cart => ({
   ...overrides,
 });
 
-const rekonect = (id: string, name = `Kampanya ${id}`) => ({
-  id,
-  name,
+const promotion = (
+  promotionCode: string,
+  type: LoyaltyProviderType = LoyaltyProviderType.REKONECT,
+): CartPromotion => ({
+  type,
+  promotionCode,
+  name: `Kampanya ${promotionCode}`,
   description: 'Açıklama',
   creditType: 'gift',
   creditValue: 50,
-  externalProvider: 'REKONECT',
+  imageUrl: null,
+  applicable: true,
+  unapplicableReason: null,
+});
+
+const rekonect = (promotionCode: string) => ({
+  type: LoyaltyProviderType.REKONECT,
+  promotionCode,
 });
 
 /** Server-side cart the GET mocks read from, so refetches see what the backend "stored". */
 let serverCart: Cart;
 
 function Harness() {
-  const {
-    carts,
-    applyExternalPromotion,
-    removeExternalPromotion,
-    updateQuantity,
-    isPromotionPending,
-  } = useCart();
+  const { carts, applyPromotion, removePromotion, updateQuantity, isPromotionPending } = useCart();
   const cart = carts.find((candidate) => candidate.cartId === CART_ID);
 
   return (
@@ -102,12 +105,20 @@ function Harness() {
       <span data-testid="total">{cart?.totalCartPrice ?? ''}</span>
       <span data-testid="discount">{cart?.discountAmount ?? ''}</span>
       <span data-testid="final">{cart?.finalPrice ?? ''}</span>
-      <span data-testid="applied">{(cart?.appliedPromotions ?? []).map((p) => p.id).join(',')}</span>
-      <span data-testid="pending-a">{String(isPromotionPending(CART_ID, 'promo-a'))}</span>
-      <span data-testid="pending-b">{String(isPromotionPending(CART_ID, 'promo-b'))}</span>
-      <button onClick={() => applyExternalPromotion(CART_ID, 'promo-a')}>apply-a</button>
-      <button onClick={() => applyExternalPromotion(CART_ID, 'promo-b')}>apply-b</button>
-      <button onClick={() => removeExternalPromotion(CART_ID, 'promo-a')}>remove-a</button>
+      <span data-testid="applied">{(cart?.appliedPromotions ?? []).map(promotionKey).join(',')}</span>
+      <span data-testid="pending-a">{String(isPromotionPending(CART_ID, rekonect('promo-a')))}</span>
+      <span data-testid="pending-b">{String(isPromotionPending(CART_ID, rekonect('promo-b')))}</span>
+      <button onClick={() => applyPromotion(CART_ID, rekonect('promo-a'))}>apply-a</button>
+      <button onClick={() => applyPromotion(CART_ID, rekonect('promo-b'))}>apply-b</button>
+      <button onClick={() => removePromotion(CART_ID, rekonect('promo-a'))}>remove-a</button>
+      <button
+        onClick={() => applyPromotion(CART_ID, { type: LoyaltyProviderType.INTERNAL, promotionCode: 'WELCOME10' })}
+      >
+        apply-coupon
+      </button>
+      <button onClick={() => removePromotion(CART_ID, { type: LoyaltyProviderType.INTERNAL })}>
+        remove-coupon
+      </button>
       <button onClick={() => updateQuantity('item-1', 1)}>set-qty-1</button>
     </div>
   );
@@ -130,7 +141,7 @@ const apiError = (code: string, status = 400) => ({
   },
 });
 
-describe('CartContext external promotions', () => {
+describe('CartContext promotions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     serverCart = buildCart();
@@ -142,55 +153,96 @@ describe('CartContext external promotions', () => {
   it('writes the apply response straight into cart state without recomputing prices', async () => {
     await renderHarness();
 
-    mockedCartService.applyExternalPromotion.mockResolvedValue(
-      buildCart({ totalCartPrice: 270, discountAmount: 89, finalPrice: 181, appliedPromotions: [rekonect('promo-a')] }),
+    mockedCartService.applyPromotion.mockResolvedValue(
+      buildCart({ totalCartPrice: 270, discountAmount: 89, finalPrice: 181, appliedPromotions: [promotion('promo-a')] }),
     );
 
     fireEvent.click(screen.getByText('apply-a'));
 
-    await waitFor(() => expect(screen.getByTestId('applied')).toHaveTextContent('promo-a'));
+    await waitFor(() => expect(screen.getByTestId('applied')).toHaveTextContent('REKONECT:promo-a'));
     expect(screen.getByTestId('total')).toHaveTextContent('270');
     expect(screen.getByTestId('discount')).toHaveTextContent('89');
     expect(screen.getByTestId('final')).toHaveTextContent('181');
-    expect(mockedCartService.applyExternalPromotion).toHaveBeenCalledWith(CART_ID, 'promo-a', 'DELIVERY');
+    expect(mockedCartService.applyPromotion).toHaveBeenCalledWith(CART_ID, rekonect('promo-a'), 'DELIVERY');
+  });
+
+  it('applies an internal coupon through the same mutation', async () => {
+    await renderHarness();
+
+    mockedCartService.applyPromotion.mockResolvedValue(
+      buildCart({
+        discountAmount: 27,
+        finalPrice: 243,
+        appliedPromotions: [promotion('WELCOME10', LoyaltyProviderType.INTERNAL)],
+      }),
+    );
+
+    fireEvent.click(screen.getByText('apply-coupon'));
+
+    await waitFor(() => expect(screen.getByTestId('applied')).toHaveTextContent('INTERNAL:WELCOME10'));
+    expect(mockedCartService.applyPromotion).toHaveBeenCalledWith(
+      CART_ID,
+      { type: LoyaltyProviderType.INTERNAL, promotionCode: 'WELCOME10' },
+      'DELIVERY',
+    );
+  });
+
+  it('removes every internal promotion without sending a code', async () => {
+    serverCart = buildCart({
+      discountAmount: 27,
+      finalPrice: 243,
+      appliedPromotions: [promotion('WELCOME10', LoyaltyProviderType.INTERNAL)],
+    });
+    await renderHarness();
+
+    mockedCartService.removePromotion.mockResolvedValue(buildCart());
+
+    fireEvent.click(screen.getByText('remove-coupon'));
+
+    await waitFor(() => expect(screen.getByTestId('applied')).toHaveTextContent(''));
+    expect(mockedCartService.removePromotion).toHaveBeenCalledWith(CART_ID, {
+      type: LoyaltyProviderType.INTERNAL,
+    });
   });
 
   it('supports several campaigns at once and keeps the others when one is removed', async () => {
     await renderHarness();
 
-    mockedCartService.applyExternalPromotion.mockResolvedValueOnce(
-      buildCart({ discountAmount: 50, finalPrice: 220, appliedPromotions: [rekonect('promo-a')] }),
+    mockedCartService.applyPromotion.mockResolvedValueOnce(
+      buildCart({ discountAmount: 50, finalPrice: 220, appliedPromotions: [promotion('promo-a')] }),
     );
     fireEvent.click(screen.getByText('apply-a'));
-    await waitFor(() => expect(screen.getByTestId('applied')).toHaveTextContent('promo-a'));
+    await waitFor(() => expect(screen.getByTestId('applied')).toHaveTextContent('REKONECT:promo-a'));
 
-    mockedCartService.applyExternalPromotion.mockResolvedValueOnce(
+    mockedCartService.applyPromotion.mockResolvedValueOnce(
       buildCart({
         discountAmount: 89,
         finalPrice: 181,
-        appliedPromotions: [rekonect('promo-a'), rekonect('promo-b')],
+        appliedPromotions: [promotion('promo-a'), promotion('promo-b')],
       }),
     );
     fireEvent.click(screen.getByText('apply-b'));
-    await waitFor(() => expect(screen.getByTestId('applied')).toHaveTextContent('promo-a,promo-b'));
+    await waitFor(() =>
+      expect(screen.getByTestId('applied')).toHaveTextContent('REKONECT:promo-a,REKONECT:promo-b'),
+    );
 
     // Removing one campaign returns the re-priced cart that still holds the other.
-    mockedCartService.removeExternalPromotion.mockResolvedValue(
-      buildCart({ discountAmount: 39, finalPrice: 231, appliedPromotions: [rekonect('promo-b')] }),
+    mockedCartService.removePromotion.mockResolvedValue(
+      buildCart({ discountAmount: 39, finalPrice: 231, appliedPromotions: [promotion('promo-b')] }),
     );
     fireEvent.click(screen.getByText('remove-a'));
 
-    await waitFor(() => expect(screen.getByTestId('applied')).toHaveTextContent('promo-b'));
+    await waitFor(() => expect(screen.getByTestId('applied')).toHaveTextContent('REKONECT:promo-b'));
     expect(screen.getByTestId('applied')).not.toHaveTextContent('promo-a');
     expect(screen.getByTestId('final')).toHaveTextContent('231');
-    expect(mockedCartService.removeExternalPromotion).toHaveBeenCalledWith(CART_ID, 'promo-a');
+    expect(mockedCartService.removePromotion).toHaveBeenCalledWith(CART_ID, rekonect('promo-a'));
   });
 
   it('ignores a double click on the same campaign but allows a different one', async () => {
     await renderHarness();
 
     let resolveApply: ((cart: Cart) => void) | undefined;
-    mockedCartService.applyExternalPromotion.mockImplementation(
+    mockedCartService.applyPromotion.mockImplementation(
       () => new Promise<Cart>((resolve) => {
         resolveApply = resolve;
       }),
@@ -200,15 +252,15 @@ describe('CartContext external promotions', () => {
     fireEvent.click(screen.getByText('apply-a'));
 
     await waitFor(() => expect(screen.getByTestId('pending-a')).toHaveTextContent('true'));
-    expect(mockedCartService.applyExternalPromotion).toHaveBeenCalledTimes(1);
+    expect(mockedCartService.applyPromotion).toHaveBeenCalledTimes(1);
     // Only the campaign being mutated is blocked.
     expect(screen.getByTestId('pending-b')).toHaveTextContent('false');
 
     fireEvent.click(screen.getByText('apply-b'));
-    expect(mockedCartService.applyExternalPromotion).toHaveBeenCalledTimes(2);
+    expect(mockedCartService.applyPromotion).toHaveBeenCalledTimes(2);
 
     await act(async () => {
-      resolveApply?.(buildCart({ appliedPromotions: [rekonect('promo-a')] }));
+      resolveApply?.(buildCart({ appliedPromotions: [promotion('promo-a')] }));
     });
   });
 
@@ -216,22 +268,22 @@ describe('CartContext external promotions', () => {
     await renderHarness();
 
     // Backend already dropped the stale campaign and kept the valid one.
-    serverCart = buildCart({ discountAmount: 39, finalPrice: 231, appliedPromotions: [rekonect('promo-b')] });
-    mockedCartService.applyExternalPromotion.mockRejectedValue(
+    serverCart = buildCart({ discountAmount: 39, finalPrice: 231, appliedPromotions: [promotion('promo-b')] });
+    mockedCartService.applyPromotion.mockRejectedValue(
       apiError('LOYALTY_PROMOTION_NO_LONGER_APPLICABLE'),
     );
 
     fireEvent.click(screen.getByText('apply-a'));
 
     await waitFor(() => expect(mockedCartService.getCart).toHaveBeenCalledWith(CART_ID));
-    await waitFor(() => expect(screen.getByTestId('applied')).toHaveTextContent('promo-b'));
+    await waitFor(() => expect(screen.getByTestId('applied')).toHaveTextContent('REKONECT:promo-b'));
     expect(screen.getByTestId('final')).toHaveTextContent('231');
   });
 
   it('does not mark a campaign applied when the request fails', async () => {
     await renderHarness();
 
-    mockedCartService.applyExternalPromotion.mockRejectedValue(apiError('LOYALTY_PROMOTION_NOT_APPLICABLE'));
+    mockedCartService.applyPromotion.mockRejectedValue(apiError('LOYALTY_PROMOTION_NOT_APPLICABLE'));
     const getCartCallsBefore = mockedCartService.getCart.mock.calls.length;
 
     fireEvent.click(screen.getByText('apply-a'));
@@ -246,7 +298,7 @@ describe('CartContext external promotions', () => {
   it('keeps client state untouched on a 5xx failure', async () => {
     await renderHarness();
 
-    mockedCartService.applyExternalPromotion.mockRejectedValue(apiError('INTERNAL_ERROR', 500));
+    mockedCartService.applyPromotion.mockRejectedValue(apiError('INTERNAL_ERROR', 500));
 
     fireEvent.click(screen.getByText('apply-a'));
 
@@ -256,9 +308,9 @@ describe('CartContext external promotions', () => {
   });
 
   it('replaces applied campaigns with the ones returned by a quantity update', async () => {
-    serverCart = buildCart({ discountAmount: 89, finalPrice: 181, appliedPromotions: [rekonect('promo-a')] });
+    serverCart = buildCart({ discountAmount: 89, finalPrice: 181, appliedPromotions: [promotion('promo-a')] });
     await renderHarness();
-    await waitFor(() => expect(screen.getByTestId('applied')).toHaveTextContent('promo-a'));
+    await waitFor(() => expect(screen.getByTestId('applied')).toHaveTextContent('REKONECT:promo-a'));
 
     // Dropping to one burger invalidates the campaign server side.
     const repricedCart = buildCart({

@@ -137,9 +137,6 @@
     "orderNote": "Sipariş Notu",
     "orderNotePlaceholder": "Resepsiyona bırakın, dışarıdayken arayın...",
     "promotions": "Promosyonlar",
-    "removePromotion": "Promosyonu kaldır",
-    "viewCoupons": "Mevcut Kuponları Gör",
-    "couponPlaceholder": "Kupon kodu girin",
     "apply": "Uygula",
     "wallet": "Cüzdan",
     "availableBalance": "Kullanılabilir Bakiye",
@@ -159,9 +156,6 @@
     "processing": "İşleniyor...",
     "completeOrder": "Siparişi Tamamla",
     "editAddress": "Adresi Düzenle",
-    "availableCoupons": "Mevcut Kuponlar",
-    "noCoupons": "Mevcut kupon bulunamadı.",
-    "alreadyUsed": "Bu kupon zaten kullanılmış",
     "errorTitle": {
       "phone": "Adres Telefon Numarası Gerektiriyor",
       "generic": "Ödeme Hatası"
@@ -232,17 +226,12 @@
       "removeFailed": "Ürün kaldırılamadı",
       "updateFailed": "Adet güncellenemedi",
       "cleared": "Sepet temizlendi",
-      "clearFailed": "Sepet temizlenemedi",
-      "couponApplied": "Kupon başarıyla uygulandı",
-      "couponApplyFailed": "Kupon uygulanamadı",
-      "couponRemoved": "Kupon kaldırıldı",
-      "couponRemoveFailed": "Kupon kaldırılamadı"
+      "clearFailed": "Sepet temizlenemedi"
     },
     "discount": "İndirim",
     "finalTotal": "Ödenecek Tutar",
     "loyalty": {
       "title": "Kampanyalar",
-      "providerLabel": "Rekonect",
       "apply": "Uygula",
       "remove": "Kaldır",
       "removeAll": "Tümünü kaldır",
@@ -250,6 +239,15 @@
       "loadError": "Kampanyalar yüklenemedi.",
       "retry": "Tekrar dene",
       "conditionsHint": "Bu kampanyanın sepet koşulları henüz sağlanmıyor olabilir.",
+      "couponPlaceholder": "Kupon kodu girin",
+      "providers": {
+        "INTERNAL": "Runmeal",
+        "REKONECT": "Rekonect"
+      },
+      "unapplicableReasons": {
+        "ALREADY_USED": "Bu kupon daha önce kullanılmış.",
+        "NOT_APPLICABLE": "Bu kampanyanın sepet koşulları henüz sağlanmıyor."
+      },
       "toast": {
         "applied": "Kampanya sepete uygulandı",
         "applyFailed": "Kampanya uygulanamadı",

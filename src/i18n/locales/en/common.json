@@ -137,9 +137,6 @@
     "orderNote": "Order Note",
     "orderNotePlaceholder": "Leave at reception, call when outside...",
     "promotions": "Promotions",
-    "removePromotion": "Remove promotion",
-    "viewCoupons": "View Available Coupons",
-    "couponPlaceholder": "Enter coupon code",
     "apply": "Apply",
     "wallet": "Wallet",
     "availableBalance": "Available Balance",
@@ -159,9 +156,6 @@
     "processing": "Processing...",
     "completeOrder": "Complete Order",
     "editAddress": "Edit Address",
-    "availableCoupons": "Available Coupons",
-    "noCoupons": "No available coupons found.",
-    "alreadyUsed": "This coupon has already been used",
     "errorTitle": {
       "phone": "Address Needs Phone Number",
       "generic": "Checkout Error"
@@ -232,17 +226,12 @@
       "removeFailed": "Failed to remove item",
       "updateFailed": "Failed to update quantity",
       "cleared": "Cart cleared",
-      "clearFailed": "Failed to clear cart",
-      "couponApplied": "Coupon applied successfully",
-      "couponApplyFailed": "Failed to apply coupon",
-      "couponRemoved": "Coupon removed",
-      "couponRemoveFailed": "Failed to remove coupon"
+      "clearFailed": "Failed to clear cart"
     },
     "discount": "Discount",
     "finalTotal": "Total to pay",
     "loyalty": {
       "title": "Campaigns",
-      "providerLabel": "Rekonect",
       "apply": "Apply",
       "remove": "Remove",
       "removeAll": "Remove all",
@@ -250,6 +239,15 @@
       "loadError": "Campaigns could not be loaded.",
       "retry": "Try again",
       "conditionsHint": "This campaign may not meet the cart conditions yet.",
+      "couponPlaceholder": "Enter coupon code",
+      "providers": {
+        "INTERNAL": "Runmeal",
+        "REKONECT": "Rekonect"
+      },
+      "unapplicableReasons": {
+        "ALREADY_USED": "This coupon has already been used.",
+        "NOT_APPLICABLE": "This campaign does not meet the cart conditions yet."
+      },
       "toast": {
         "applied": "Campaign applied to your cart",
         "applyFailed": "Campaign could not be applied",

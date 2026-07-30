@@ -8,27 +8,37 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { DEFAULT_PRODUCT_IMAGE } from '@/lib/constants';
+import { resolveUnapplicableReason } from '@/lib/loyalty-errors';
 import {
-  AppliedPromotion,
-  AvailablePromotion,
-  getPromotionImage,
-  isExternalPromotion,
+  CartPromotion,
+  LoyaltyProviderType,
+  promotionKey,
+  RemovePromotionInput,
 } from '@/types/cart';
 
 interface CartPromotionsProps {
   cartId: string;
   /** Applied promotions straight from the cart response — the only source of truth. */
-  appliedPromotions?: AppliedPromotion[];
+  appliedPromotions?: CartPromotion[];
+  /** Renders the manual coupon-code field for codes the list does not carry yet. */
+  allowCouponCode?: boolean;
   className?: string;
 }
 
 /**
- * External (Rekonect) loyalty campaigns for a cart.
+ * Every promotion for a cart — internal Runmeal coupons and Rekonect campaigns
+ * alike. One list, one row shape; the only provider specific bit is the remove
+ * payload the backend expects.
  *
- * Every price and every applied-campaign decision comes from the backend: this
+ * Every price and every applied-promotion decision comes from the backend: this
  * component only lists candidates, sends apply/remove, and renders what comes back.
  */
-export function CartPromotions({ cartId, appliedPromotions, className }: CartPromotionsProps) {
+export function CartPromotions({
+  cartId,
+  appliedPromotions,
+  allowCouponCode = false,
+  className,
+}: CartPromotionsProps) {
   const { t } = useTranslation();
   const {
     availablePromotionsByCart,
@@ -36,10 +46,13 @@ export function CartPromotions({ cartId, appliedPromotions, className }: CartPro
     loadAvailablePromotions,
     isPromotionsLoading,
     hasPromotionsError,
-    applyExternalPromotion,
-    removeExternalPromotion,
+    applyPromotion,
+    removePromotion,
     isPromotionPending,
   } = useCart();
+
+  const [couponCode, setCouponCode] = useState('');
+  const [isCouponSubmitting, setIsCouponSubmitting] = useState(false);
 
   // Load once the cart exists, and again whenever the lists are invalidated.
   useEffect(() => {
@@ -47,32 +60,47 @@ export function CartPromotions({ cartId, appliedPromotions, className }: CartPro
     loadAvailablePromotions(cartId);
   }, [cartId, promotionsVersion, loadAvailablePromotions]);
 
-  const appliedExternal = useMemo(
-    () => (appliedPromotions || []).filter(isExternalPromotion),
-    [appliedPromotions],
-  );
+  const applied = useMemo(() => appliedPromotions || [], [appliedPromotions]);
 
-  const appliedIds = useMemo(
-    () => new Set(appliedExternal.map((promotion) => promotion.id)),
-    [appliedExternal],
-  );
+  const appliedKeys = useMemo(() => new Set(applied.map(promotionKey)), [applied]);
 
-  const rows = useMemo<AvailablePromotion[]>(() => {
-    const candidates = (availablePromotionsByCart[cartId] || []).filter((item) =>
-      isExternalPromotion(item.promotion),
+  const rows = useMemo<CartPromotion[]>(() => {
+    const candidates = (availablePromotionsByCart[cartId] || []).filter(
+      (promotion) => !appliedKeys.has(promotionKey(promotion)),
     );
 
-    // An applied campaign that dropped out of the candidate list must stay removable.
-    const appliedOnly = appliedExternal
-      .filter((promotion) => !candidates.some((item) => item.promotion.id === promotion.id))
-      .map<AvailablePromotion>((promotion) => ({ applicable: true, promotion }));
+    // Applied first, and an applied promotion that dropped out of the candidate
+    // list must stay removable.
+    return [...applied, ...candidates];
+  }, [availablePromotionsByCart, cartId, applied, appliedKeys]);
 
-    return [...candidates, ...appliedOnly];
-  }, [availablePromotionsByCart, cartId, appliedExternal]);
+  const appliedRekonectCount = applied.filter(
+    (promotion) => promotion.type === LoyaltyProviderType.REKONECT,
+  ).length;
+  const removeAllRekonect: RemovePromotionInput = { type: LoyaltyProviderType.REKONECT };
 
   const isLoading = isPromotionsLoading(cartId);
   const hasError = hasPromotionsError(cartId);
-  const isRemovingAll = isPromotionPending(cartId);
+  const isRemovingAll = isPromotionPending(cartId, removeAllRekonect);
+
+  const handleApplyCouponCode = async () => {
+    const code = couponCode.trim();
+    if (!code) return;
+
+    setIsCouponSubmitting(true);
+    try {
+      // A hand typed code is always an internal Runmeal coupon.
+      const didApply = await applyPromotion(cartId, {
+        type: LoyaltyProviderType.INTERNAL,
+        promotionCode: code,
+      });
+      if (didApply) {
+        setCouponCode('');
+      }
+    } finally {
+      setIsCouponSubmitting(false);
+    }
+  };
 
   return (
     <section className={className} aria-labelledby={`cart-promotions-${cartId}`}>
@@ -84,10 +112,10 @@ export function CartPromotions({ cartId, appliedPromotions, className }: CartPro
           <Sparkles className="h-4 w-4 shrink-0 text-orange-600" />
           {t('cart.loyalty.title')}
         </h3>
-        {appliedExternal.length > 1 && (
+        {appliedRekonectCount > 1 && (
           <button
             type="button"
-            onClick={() => removeExternalPromotion(cartId)}
+            onClick={() => removePromotion(cartId, removeAllRekonect)}
             disabled={isRemovingAll}
             className="shrink-0 text-xs font-medium text-zinc-500 underline-offset-4 transition-colors hover:text-red-600 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -122,38 +150,76 @@ export function CartPromotions({ cartId, appliedPromotions, className }: CartPro
         )
       ) : (
         <ul className="space-y-2">
-          {rows.map((row) => (
-            <PromotionRow
-              key={row.promotion.id}
-              row={row}
-              isApplied={appliedIds.has(row.promotion.id)}
-              isPending={isPromotionPending(cartId, row.promotion.id)}
-              onApply={() => applyExternalPromotion(cartId, row.promotion.id)}
-              onRemove={() => removeExternalPromotion(cartId, row.promotion.id)}
-            />
-          ))}
+          {rows.map((promotion) => {
+            const isApplied = appliedKeys.has(promotionKey(promotion));
+            // Several Rekonect campaigns can sit on one cart, so they are removed
+            // by their own code; internal coupons are removed per provider.
+            const removeInput: RemovePromotionInput =
+              promotion.type === LoyaltyProviderType.REKONECT
+                ? { type: promotion.type, promotionCode: promotion.promotionCode }
+                : { type: promotion.type };
+
+            return (
+              <PromotionRow
+                key={promotionKey(promotion)}
+                promotion={promotion}
+                isApplied={isApplied}
+                isPending={isPromotionPending(cartId, isApplied ? removeInput : promotion)}
+                onApply={() =>
+                  applyPromotion(cartId, {
+                    type: promotion.type,
+                    promotionCode: promotion.promotionCode,
+                  })
+                }
+                onRemove={() => removePromotion(cartId, removeInput)}
+              />
+            );
+          })}
         </ul>
+      )}
+
+      {allowCouponCode && (
+        <div className="mt-3 flex gap-2 border-t border-zinc-100 pt-3">
+          <input
+            type="text"
+            value={couponCode}
+            onChange={(event) => setCouponCode(event.target.value)}
+            placeholder={t('cart.loyalty.couponPlaceholder')}
+            className="min-w-0 flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm uppercase placeholder:normal-case focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            isLoading={isCouponSubmitting}
+            disabled={!couponCode.trim()}
+            onClick={handleApplyCouponCode}
+            className="shrink-0"
+          >
+            {t('cart.loyalty.apply')}
+          </Button>
+        </div>
       )}
     </section>
   );
 }
 
 function PromotionRow({
-  row,
+  promotion,
   isApplied,
   isPending,
   onApply,
   onRemove,
 }: {
-  row: AvailablePromotion;
+  promotion: CartPromotion;
   isApplied: boolean;
   isPending: boolean;
   onApply: () => void;
   onRemove: () => void;
 }) {
   const { t } = useTranslation();
-  const { promotion } = row;
-  const [imageSrc, setImageSrc] = useState(() => getPromotionImage(promotion) || DEFAULT_PRODUCT_IMAGE);
+  const [imageSrc, setImageSrc] = useState(() => promotion.imageUrl || DEFAULT_PRODUCT_IMAGE);
+  const unapplicableReason = resolveUnapplicableReason(promotion.unapplicableReason, t);
 
   return (
     <li
@@ -178,15 +244,15 @@ function PromotionRow({
           <p className="min-w-0 break-words text-sm font-semibold text-zinc-900">{promotion.name}</p>
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-600">
             <Gift className="h-3 w-3" />
-            {t('cart.loyalty.providerLabel')}
+            {t(`cart.loyalty.providers.${promotion.type}`)}
           </span>
         </div>
         {promotion.description ? (
           <p className="mt-1 break-words text-xs leading-snug text-zinc-500">{promotion.description}</p>
         ) : null}
-        {!isApplied && row.applicable === false ? (
+        {!isApplied && !promotion.applicable ? (
           <p className="mt-1 break-words text-xs leading-snug text-amber-600">
-            {t('cart.loyalty.conditionsHint')}
+            {unapplicableReason || t('cart.loyalty.conditionsHint')}
           </p>
         ) : null}
       </div>
@@ -209,6 +275,7 @@ function PromotionRow({
             variant="secondary"
             size="sm"
             isLoading={isPending}
+            disabled={!promotion.applicable}
             onClick={onApply}
             className="w-full sm:w-auto"
           >

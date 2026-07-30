@@ -16,7 +16,8 @@ const readKey = (source: Record<string, unknown>, path: string) =>
 
 const REQUIRED_KEYS = [
   'cart.loyalty.title',
-  'cart.loyalty.providerLabel',
+  'cart.loyalty.providers.INTERNAL',
+  'cart.loyalty.providers.REKONECT',
   'cart.loyalty.apply',
   'cart.loyalty.remove',
   'cart.loyalty.removeAll',
@@ -24,6 +25,8 @@ const REQUIRED_KEYS = [
   'cart.loyalty.loadError',
   'cart.loyalty.retry',
   'cart.loyalty.conditionsHint',
+  'cart.loyalty.couponPlaceholder',
+  'cart.loyalty.unapplicableReasons.ALREADY_USED',
   'cart.loyalty.toast.applied',
   'cart.loyalty.toast.applyFailed',
   'cart.loyalty.toast.removed',

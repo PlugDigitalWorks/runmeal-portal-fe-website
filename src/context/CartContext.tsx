@@ -3,7 +3,14 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { cartService } from '@/services/cart.service';
 import { userService } from '@/services/user.service';
-import { AvailablePromotion, Cart, CartItemOptionGroup, getCartId } from '@/types/cart';
+import {
+  ApplyPromotionInput,
+  Cart,
+  CartItemOptionGroup,
+  CartPromotion,
+  getCartId,
+  RemovePromotionInput,
+} from '@/types/cart';
 import { Product } from '@/types/product';
 import { useBranch } from './BranchContext';
 import { useUser } from './UserContext';
@@ -33,12 +40,13 @@ type CartOptionDto = {
 
 type CartAddonInput = { id: string; name?: string; price?: number };
 
-export type { AvailablePromotion };
+export type { CartPromotion };
 
 const DEFAULT_ORDER_TYPE = 'DELIVERY';
 
-/** Identifies an in-flight promotion mutation; `*` covers "remove every external promotion". */
-const promotionMutationKey = (cartId: string, assetKey?: string) => `${cartId}::${assetKey ?? '*'}`;
+/** Identifies an in-flight promotion mutation; `*` covers "remove every promotion of this provider". */
+const promotionMutationKey = (cartId: string, { type, promotionCode }: RemovePromotionInput) =>
+  `${cartId}::${type}:${promotionCode ?? '*'}`;
 
 type ApiError = {
   response?: {
@@ -80,25 +88,23 @@ interface CartContextType {
   ) => Promise<void>;
   removeFromCart: (itemId: string) => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
-  applyCoupon: (couponCode: string, cartId?: string) => Promise<void>;
-  removeCoupon: (cartId?: string) => Promise<void>;
   cartTotal: number;
   refreshCart: () => Promise<void>;
   isCartOpen: boolean;
   openCart: (cartId?: string) => void;
   closeCart: () => void;
 
-  // Promotions (internal Runmeal coupons + external Rekonect campaigns)
-  availablePromotionsByCart: Record<string, AvailablePromotion[]>;
+  // Promotions — internal Runmeal coupons and Rekonect campaigns share one model.
+  availablePromotionsByCart: Record<string, CartPromotion[]>;
   /** Bumped whenever the available-promotion lists go stale, e.g. cart items changed. */
   promotionsVersion: number;
   loadAvailablePromotions: (cartId: string) => Promise<void>;
   invalidateAvailablePromotions: () => void;
   isPromotionsLoading: (cartId: string) => boolean;
   hasPromotionsError: (cartId: string) => boolean;
-  applyExternalPromotion: (cartId: string, assetKey: string) => Promise<boolean>;
-  removeExternalPromotion: (cartId: string, assetKey?: string) => Promise<boolean>;
-  isPromotionPending: (cartId: string, assetKey?: string) => boolean;
+  applyPromotion: (cartId: string, input: ApplyPromotionInput) => Promise<boolean>;
+  removePromotion: (cartId: string, input: RemovePromotionInput) => Promise<boolean>;
+  isPromotionPending: (cartId: string, input: RemovePromotionInput) => boolean;
   refreshSingleCart: (cartId: string) => Promise<Cart | null>;
 
   // Legacy API for CartDrawer compatibility
@@ -122,7 +128,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedCartId, setSelectedCartId] = useState<string | undefined>(undefined);
-  const [availablePromotionsByCart, setAvailablePromotionsByCart] = useState<Record<string, AvailablePromotion[]>>({});
+  const [availablePromotionsByCart, setAvailablePromotionsByCart] = useState<Record<string, CartPromotion[]>>({});
   const [promotionsLoadingCartIds, setPromotionsLoadingCartIds] = useState<string[]>([]);
   const [promotionsErrorCartIds, setPromotionsErrorCartIds] = useState<string[]>([]);
   const [promotionsVersion, setPromotionsVersion] = useState(0);
@@ -629,7 +635,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   );
 
   const isPromotionPending = useCallback(
-    (cartId: string, assetKey?: string) => pendingPromotionKeys.includes(promotionMutationKey(cartId, assetKey)),
+    (cartId: string, input: RemovePromotionInput) => pendingPromotionKeys.includes(promotionMutationKey(cartId, input)),
     [pendingPromotionKeys],
   );
 
@@ -665,14 +671,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, [t, refreshSingleCart, invalidateAvailablePromotions]);
 
-  const applyExternalPromotion = useCallback(async (cartId: string, assetKey: string) => {
-    if (!isAuthenticated || !cartId || !assetKey) return false;
+  const applyPromotion = useCallback(async (cartId: string, input: ApplyPromotionInput) => {
+    if (!isAuthenticated || !cartId || !input.promotionCode) return false;
 
-    const key = promotionMutationKey(cartId, assetKey);
+    const key = promotionMutationKey(cartId, input);
     if (!beginPromotionMutation(key)) return false;
 
     try {
-      const updatedCart = await cartService.applyExternalPromotion(cartId, assetKey, DEFAULT_ORDER_TYPE);
+      const updatedCart = await cartService.applyPromotion(cartId, input, DEFAULT_ORDER_TYPE);
       upsertCart(updatedCart);
       invalidateAvailablePromotions();
       if (isMountedRef.current) {
@@ -695,15 +701,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     t,
   ]);
 
-  /** Omitting `assetKey` removes every external promotion on the cart. */
-  const removeExternalPromotion = useCallback(async (cartId: string, assetKey?: string) => {
+  /** Omitting `promotionCode` removes every promotion of that provider from the cart. */
+  const removePromotion = useCallback(async (cartId: string, input: RemovePromotionInput) => {
     if (!isAuthenticated || !cartId) return false;
 
-    const key = promotionMutationKey(cartId, assetKey);
+    const key = promotionMutationKey(cartId, input);
     if (!beginPromotionMutation(key)) return false;
 
     try {
-      const updatedCart = await cartService.removeExternalPromotion(cartId, assetKey);
+      const updatedCart = await cartService.removePromotion(cartId, input);
       upsertCart(updatedCart);
       invalidateAvailablePromotions();
       if (isMountedRef.current) {
@@ -726,51 +732,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     t,
   ]);
 
-  const applyCoupon = async (couponCode: string, targetCartId?: string) => {
-    const cartId = targetCartId || getCartId(cart);
-    const targetCart = carts.find((candidate) => getCartId(candidate) === cartId) || cart;
-    const branchId = targetCart?.branchId || selectedBranch?.id;
-    if (!isAuthenticated || !cartId || !branchId) return;
-    setIsLoading(true);
-    try {
-      const updatedCart = await cartService.applyPromotion(
-        cartId,
-        couponCode,
-        branchId,
-        targetCart?.totalCartPrice || 0,
-        DEFAULT_ORDER_TYPE
-      );
-      upsertCart(updatedCart);
-      toast.success(t('cart.toast.couponApplied'));
-      invalidateAvailablePromotions();
-      await refreshCarts();
-    } catch (e: unknown) {
-      console.error("Apply coupon failed", e);
-      toast.error(getApiErrorMessage(e, t('cart.toast.couponApplyFailed')));
-      throw e;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const removeCoupon = async (targetCartId?: string) => {
-    const cartId = targetCartId || getCartId(cart);
-    if (!isAuthenticated || !cartId) return;
-    setIsLoading(true);
-    try {
-      const updatedCart = await cartService.removePromotion(cartId);
-      upsertCart(updatedCart);
-      toast.success(t('cart.toast.couponRemoved'));
-      invalidateAvailablePromotions();
-      await refreshCarts();
-    } catch (e: unknown) {
-      console.error("Remove coupon failed", e);
-      toast.error(getApiErrorMessage(e, t('cart.toast.couponRemoveFailed')));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const cartTotal = isAuthenticated
     ? (cart?.totalCartPrice || 0)
     : guestCartItems.reduce((acc, item) => acc + ((item.price || 0) * item.quantity), 0);
@@ -791,8 +752,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       addToCart,
       removeFromCart,
       updateQuantity,
-      applyCoupon,
-      removeCoupon,
       cartTotal,
       refreshCart,
       isCartOpen,
@@ -805,8 +764,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       invalidateAvailablePromotions,
       isPromotionsLoading,
       hasPromotionsError,
-      applyExternalPromotion,
-      removeExternalPromotion,
+      applyPromotion,
+      removePromotion,
       isPromotionPending,
       refreshSingleCart,
       // Legacy API

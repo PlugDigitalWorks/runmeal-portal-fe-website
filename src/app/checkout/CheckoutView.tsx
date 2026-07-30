@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useUser } from '@/context/UserContext';
 import { useCart } from '@/context/CartContext';
 import { useBranch } from '@/context/BranchContext';
@@ -19,7 +19,7 @@ import { AddressForm, AddressFormValues } from '@/components/address/AddressForm
 import { CartPromotions } from '@/components/cart/CartPromotions';
 import type { Address } from '@/types/address';
 import type { Branch } from '@/types/branch';
-import { getCartId, isExternalPromotion, type AvailablePromotion, type Cart, type CartItem } from '@/types/cart';
+import { getCartId, type Cart, type CartItem } from '@/types/cart';
 import { sanitizePositiveNumber } from '@/lib/utils';
 import { isLoyaltyError, resolveLoyaltyErrorMessage } from '@/lib/loyalty-errors';
 import { useTranslation } from 'react-i18next';
@@ -172,10 +172,6 @@ export default function CheckoutView() {
         carts,
         isCartOpen,
         closeCart,
-        applyCoupon,
-        removeCoupon,
-        availablePromotionsByCart,
-        loadAvailablePromotions,
         refreshSingleCart,
         invalidateAvailablePromotions,
     } = useCart();
@@ -193,10 +189,6 @@ export default function CheckoutView() {
     const [deliverableAddressIds, setDeliverableAddressIds] = useState<Set<string>>(new Set());
     const [isCheckingAddresses, setIsCheckingAddresses] = useState(false);
 
-    // Coupon states
-    const [couponCode, setCouponCode] = useState('');
-    const [isCouponLoading, setIsCouponLoading] = useState(false);
-    const [showCouponModal, setShowCouponModal] = useState(false);
     /** Set when checkout validation reports a promotion change; blocks ordering until re-confirmed. */
     const [needsTotalReconfirm, setNeedsTotalReconfirm] = useState(false);
 
@@ -212,12 +204,6 @@ export default function CheckoutView() {
         : carts.find(c => c.items && c.items.length > 0);
     const selectedCartId = getCartId(selectedCart);
     const targetBranchId = getCartBranchId(selectedCart, selectedBranch?.id);
-    /** Runmeal coupon promotions; Rekonect campaigns are handled by <CartPromotions />. */
-    const appliedInternalPromotions = useMemo(
-        () => (selectedCart?.appliedPromotions || []).filter((promotion) => !isExternalPromotion(promotion)),
-        [selectedCart?.appliedPromotions],
-    );
-    const appliedCoupon = appliedInternalPromotions[0];
     const deliverableAddresses = useMemo(
         () => addresses.filter((address) => deliverableAddressIds.has(address.id)),
         [addresses, deliverableAddressIds],
@@ -340,41 +326,6 @@ export default function CheckoutView() {
         ? t('checkout.errorTitle.phone')
         : t('checkout.errorTitle.generic');
     const branchUnavailableMessage = t('checkout.toast.branchUnavailable');
-
-    // --- Coupon Handlers ---
-    const handleApplyCoupon = async () => {
-        if (!couponCode.trim()) return;
-        setIsCouponLoading(true);
-        try {
-            await applyCoupon(couponCode, selectedCartId);
-            setCouponCode('');
-        } catch {
-            // Error handled in context
-        } finally {
-            setIsCouponLoading(false);
-        }
-    };
-
-    const handleApplySpecificCoupon = async (code: string) => {
-        setIsCouponLoading(true);
-        try {
-            await applyCoupon(code, selectedCartId);
-            setShowCouponModal(false);
-        } catch {
-            // Error handled in context
-        } finally {
-            setIsCouponLoading(false);
-        }
-    };
-
-    const handleRemoveCoupon = async () => {
-        setIsCouponLoading(true);
-        try {
-            await removeCoupon(selectedCartId);
-        } finally {
-            setIsCouponLoading(false);
-        }
-    };
 
     // --- Wallet Handlers ---
     const handleApplyWallet = (amountOverride?: number) => {
@@ -737,101 +688,26 @@ export default function CheckoutView() {
                             </CardContent>
                         </Card>
 
-                        {/* Loyalty Campaigns (Rekonect) */}
-                        {selectedCartId && (
-                            <Card className="border-zinc-200 shadow-sm overflow-hidden">
-                                <CardContent className="pt-6">
-                                    <CartPromotions
-                                        cartId={selectedCartId}
-                                        appliedPromotions={selectedCart.appliedPromotions}
-                                    />
-                                </CardContent>
-                            </Card>
-                        )}
-
-                        {/* Coupon & Wallet Section */}
+                        {/* Promotions & Wallet Section */}
                         <div className="grid gap-6 sm:grid-cols-2">
-                            {/* Coupon Card */}
-                            <Card className="border-zinc-200 shadow-sm overflow-hidden">
-                                <CardHeader className="pb-3 border-b border-zinc-100">
-                                    <CardTitle className="flex items-center gap-2 text-lg">
-                                        <Ticket className="text-orange-600 h-5 w-5" />
-                                        {t('checkout.promotions')}
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="pt-4">
-                                    {appliedCoupon ? (
-                                        <div className="space-y-3">
-                                            <div className="flex items-center justify-between gap-3 bg-green-50 text-green-700 p-3 rounded-lg border border-green-200">
-                                                <div className="flex min-w-0 items-center gap-2">
-                                                    <Ticket size={16} className="shrink-0" />
-                                                    <div className="min-w-0">
-                                                        <p className="break-words font-bold text-sm">{appliedCoupon.name}</p>
-                                                        <p className="break-words text-xs">{appliedCoupon.description}</p>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    aria-label={t('checkout.removePromotion')}
-                                                    onClick={handleRemoveCoupon}
-                                                    disabled={isCouponLoading}
-                                                    className="shrink-0 text-green-700 hover:text-green-900 bg-green-100 hover:bg-green-200 p-1.5 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                >
-                                                    <X size={14} />
-                                                </button>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowCouponModal(true)}
-                                                className="w-full text-center text-orange-600 text-sm hover:underline"
-                                            >
-                                                {t('checkout.viewCoupons')}
-                                            </button>
-                                            <div className="flex gap-2">
-                                                <input
-                                                    type="text"
-                                                    value={couponCode}
-                                                    onChange={(e) => setCouponCode(e.target.value)}
-                                                    placeholder={t('checkout.couponPlaceholder')}
-                                                    className="min-w-0 flex-1 border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 uppercase placeholder:normal-case"
-                                                />
-                                                <button
-                                                    onClick={handleApplyCoupon}
-                                                    disabled={!couponCode.trim() || isCouponLoading}
-                                                    className="bg-zinc-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                                >
-                                                    {t('checkout.apply')}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-3">
-                                            <button
-                                                onClick={() => setShowCouponModal(true)}
-                                                className="w-full text-center text-orange-600 text-sm hover:underline"
-                                            >
-                                                {t('checkout.viewCoupons')}
-                                            </button>
-                                            <div className="flex gap-2">
-                                                <input
-                                                    type="text"
-                                                    value={couponCode}
-                                                    onChange={(e) => setCouponCode(e.target.value)}
-                                                    placeholder={t('checkout.couponPlaceholder')}
-                                                    className="min-w-0 flex-1 border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 uppercase placeholder:normal-case"
-                                                />
-                                                <button
-                                                    onClick={handleApplyCoupon}
-                                                    disabled={!couponCode.trim() || isCouponLoading}
-                                                    className="bg-zinc-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                                >
-                                                    {t('checkout.apply')}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
+                            {/* Promotions Card — internal coupons and Rekonect campaigns in one list */}
+                            {selectedCartId && (
+                                <Card className="border-zinc-200 shadow-sm overflow-hidden">
+                                    <CardHeader className="pb-3 border-b border-zinc-100">
+                                        <CardTitle className="flex items-center gap-2 text-lg">
+                                            <Ticket className="text-orange-600 h-5 w-5" />
+                                            {t('checkout.promotions')}
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="pt-4">
+                                        <CartPromotions
+                                            cartId={selectedCartId}
+                                            appliedPromotions={selectedCart.appliedPromotions}
+                                            allowCouponCode
+                                        />
+                                    </CardContent>
+                                </Card>
+                            )}
 
                             {/* Wallet Card */}
                             <Card className="border-zinc-200 shadow-sm overflow-hidden h-full flex flex-col">
@@ -1035,17 +911,6 @@ export default function CheckoutView() {
                 </div>
             </div>
 
-            {/* Coupon List Modal */}
-            {showCouponModal && (
-                <CouponListModal
-                    onClose={() => setShowCouponModal(false)}
-                    onApply={handleApplySpecificCoupon}
-                    cartId={selectedCartId}
-                    availablePromotions={availablePromotionsByCart[selectedCartId] || []}
-                    loadAvailablePromotions={loadAvailablePromotions}
-                />
-            )}
-
             {editingAddressId && editingAddress && (
                 <AddressEditModal
                     address={editingAddress}
@@ -1089,71 +954,3 @@ function AddressEditModal({ address, onClose, onSuccess }: {
     );
 }
 
-function CouponListModal({ onClose, onApply, cartId, availablePromotions, loadAvailablePromotions }: {
-    onClose: () => void;
-    onApply: (code: string) => void;
-    cartId: string;
-    availablePromotions: AvailablePromotion[];
-    loadAvailablePromotions: (cartId: string) => Promise<void>;
-}) {
-    const { t } = useTranslation();
-    const hasLoadedPromotionsRef = useRef(false);
-
-    useEffect(() => {
-        if (hasLoadedPromotionsRef.current || !cartId) {
-            return;
-        }
-
-        hasLoadedPromotionsRef.current = true;
-        loadAvailablePromotions(cartId);
-    }, [cartId, loadAvailablePromotions]);
-
-    // Rekonect campaigns live in <CartPromotions />; this modal is coupon-code only.
-    const couponPromotions = availablePromotions.filter(
-        (item) => !isExternalPromotion(item.promotion) && Boolean(item.promotion.couponCode),
-    );
-
-    return (
-        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-lg w-full max-w-md max-h-[80vh] flex flex-col">
-                <div className="p-4 border-b flex items-center justify-between">
-                    <h3 className="font-bold text-lg">{t('checkout.availableCoupons')}</h3>
-                    <button onClick={onClose} className="text-zinc-500 hover:text-zinc-800">
-                        <X size={20} />
-                    </button>
-                </div>
-                <div className="p-4 overflow-y-auto">
-                    {couponPromotions.length === 0 ? (
-                        <p className="text-center text-zinc-500 py-4">{t('checkout.noCoupons')}</p>
-                    ) : (
-                        <div className="space-y-3">
-                            {couponPromotions.map((item) => (
-                                <div key={item.promotion.id || item.promotion.couponCode} className={`p-4 rounded-lg border ${item.applicable ? 'border-green-200 bg-green-50' : 'border-zinc-200 bg-zinc-50 opacity-70'}`}>
-                                    <div className="flex justify-between items-start gap-2 mb-2">
-                                        <h4 className="min-w-0 break-words font-bold text-zinc-800">{item.promotion.name}</h4>
-                                        {item.applicable && (
-                                            <button
-                                                onClick={() => onApply(item.promotion.couponCode!)}
-                                                className="shrink-0 text-xs bg-green-600 text-white px-3 py-1 rounded-full hover:bg-green-700"
-                                            >
-                                                {t('checkout.apply')}
-                                            </button>
-                                        )}
-                                    </div>
-                                    <p className="break-words text-sm text-zinc-600 mb-2">{item.promotion.description}</p>
-                                    {!item.applicable && (
-                                        <p className="text-xs text-red-500">
-                                            {item.unapplicableReason === 'ALREADY_USED'
-                                                ? t('checkout.alreadyUsed')
-                                                : item.unapplicableReason}
-                                        </p>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-}
