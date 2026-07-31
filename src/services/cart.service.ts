@@ -4,10 +4,13 @@ import {
   AddItemDto,
   ApplyPromotionInput,
   Cart,
+  CartLoyaltyWallet,
   CartPromotion,
   RemovePromotionInput,
   SetQtyDto,
 } from '@/types/cart';
+
+type LoyaltyWalletResponse = CartLoyaltyWallet | ApiResponse<CartLoyaltyWallet>;
 
 export const cartService = {
   async getAllCarts() {
@@ -36,6 +39,18 @@ export const cartService = {
     const config = branchId ? { headers: { 'x-branch-id': branchId } } : {};
     const response = await api.delete<ApiResponse<Cart | { message: string }>>(`/carts/items/${itemId}`, config);
     return response.data.data;
+  },
+
+  /**
+   * Balance the cart's branch lets the user spend, resolved by its loyalty
+   * provider — the account-wide Runmeal credit balance can differ from it.
+   */
+  async getLoyaltyWallet(cartId: string) {
+    const response = await api.get<LoyaltyWalletResponse>(`/carts/${cartId}/loyalty/wallet`);
+    const body = response.data;
+    // The endpoint answers unwrapped; tolerate the standard { data } envelope too.
+    const wallet = body && 'data' in body ? body.data : body;
+    return (wallet as CartLoyaltyWallet | undefined) ?? null;
   },
 
   /** Internal Runmeal coupons and Rekonect campaigns, in one list. */

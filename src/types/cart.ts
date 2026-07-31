@@ -83,6 +83,19 @@ export interface RemovePromotionInput {
 export const promotionKey = (promotion: Pick<CartPromotion, 'type' | 'promotionCode'>) =>
   `${promotion.type}:${promotion.promotionCode}`;
 
+/**
+ * Balance the cart's branch actually lets the user spend, resolved by its loyalty
+ * provider. Not the same thing as the account-wide Runmeal credit balance.
+ */
+export interface CartLoyaltyWallet {
+  provider: LoyaltyProviderType;
+  /** e.g. `points`; copy comes from i18n with the raw value as fallback. */
+  balanceType: string;
+  balance: number;
+  currency: string;
+  usable: boolean;
+}
+
 /** Stable id for a cart across the `id` / `cartId` response variants. */
 export const getCartId = (cart: Cart | null | undefined) => cart?.cartId || cart?.id || '';
 

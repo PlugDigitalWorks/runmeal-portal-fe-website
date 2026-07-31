@@ -82,7 +82,7 @@
     "name": "Name",
     "email": "Email",
     "role": "Role",
-    "loyaltyTitle": "Para Puan",
+    "loyaltyTitle": "Runmeal Points",
     "loyaltySubtitle": "Your wallet balance",
     "tabs": {
       "addresses": "Addresses",
@@ -104,7 +104,8 @@
     "noAddresses": "No addresses found. Add one to order.",
     "deleteFailed": "Failed to delete address",
     "loading": "Loading...",
-    "loadingProfile": "Loading profile..."
+    "loadingProfile": "Loading profile...",
+    "loyaltyNote": "This balance belongs to your general Runmeal account. The balance you can actually spend may differ at checkout, depending on the restaurant’s loyalty system."
   },
   "checkout": {
     "title": "Checkout",
@@ -247,6 +248,13 @@
       "unapplicableReasons": {
         "ALREADY_USED": "This coupon has already been used.",
         "NOT_APPLICABLE": "This campaign does not meet the cart conditions yet."
+      },
+      "availableBalance": "Available balance",
+      "balanceNotUsable": "This balance cannot be used for this order.",
+      "balanceTypes": {
+        "points": "Points",
+        "credit": "Credit",
+        "currency": "Balance"
       },
       "toast": {
         "applied": "Campaign applied to your cart",

@@ -82,7 +82,7 @@
     "name": "Ad Soyad",
     "email": "E-posta",
     "role": "Rol",
-    "loyaltyTitle": "Para Puan",
+    "loyaltyTitle": "Runmeal Para Puanı",
     "loyaltySubtitle": "Cüzdan bakiyeniz",
     "tabs": {
       "addresses": "Adresler",
@@ -104,7 +104,8 @@
     "noAddresses": "Adres bulunamadı. Sipariş vermek için bir tane ekleyin.",
     "deleteFailed": "Adres silinemedi",
     "loading": "Yükleniyor...",
-    "loadingProfile": "Profil yükleniyor..."
+    "loadingProfile": "Profil yükleniyor...",
+    "loyaltyNote": "Bu bakiye Runmeal genel hesabınıza aittir. Kullanılabilir ödeme bakiyesi, restoranın sadakat sistemine göre ödeme ekranında farklılık gösterebilir."
   },
   "checkout": {
     "title": "Ödeme",
@@ -247,6 +248,13 @@
       "unapplicableReasons": {
         "ALREADY_USED": "Bu kupon daha önce kullanılmış.",
         "NOT_APPLICABLE": "Bu kampanyanın sepet koşulları henüz sağlanmıyor."
+      },
+      "availableBalance": "Kullanılabilir bakiye",
+      "balanceNotUsable": "Bu bakiye bu sipariş için kullanılamıyor.",
+      "balanceTypes": {
+        "points": "Puan",
+        "credit": "Kredi",
+        "currency": "Bakiye"
       },
       "toast": {
         "applied": "Kampanya sepete uygulandı",

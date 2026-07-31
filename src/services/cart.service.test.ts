@@ -111,3 +111,36 @@ describe('cartService promotions', () => {
     });
   });
 });
+
+describe('cartService loyalty wallet', () => {
+  const wallet = {
+    provider: LoyaltyProviderType.REKONECT,
+    balanceType: 'points',
+    balance: 11.6,
+    currency: 'TRY',
+    usable: true,
+  };
+
+  beforeEach(() => {
+    mockedApi.get.mockReset();
+  });
+
+  it('reads the branch scoped balance for the cart', async () => {
+    mockedApi.get.mockResolvedValue({ data: wallet });
+
+    await expect(cartService.getLoyaltyWallet('cart-1')).resolves.toEqual(wallet);
+    expect(mockedApi.get).toHaveBeenCalledWith('/carts/cart-1/loyalty/wallet');
+  });
+
+  it('also accepts the standard { data } envelope', async () => {
+    mockedApi.get.mockResolvedValue({ data: { status: true, message: 'Success', data: wallet } });
+
+    await expect(cartService.getLoyaltyWallet('cart-1')).resolves.toEqual(wallet);
+  });
+
+  it('resolves to null when the branch has no provider wallet', async () => {
+    mockedApi.get.mockResolvedValue({ data: { status: true, message: 'Success', data: null } });
+
+    await expect(cartService.getLoyaltyWallet('cart-1')).resolves.toBeNull();
+  });
+});

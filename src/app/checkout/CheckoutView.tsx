@@ -19,7 +19,9 @@ import { AddressForm, AddressFormValues } from '@/components/address/AddressForm
 import { CartPromotions } from '@/components/cart/CartPromotions';
 import type { Address } from '@/types/address';
 import type { Branch } from '@/types/branch';
-import { getCartId, type Cart, type CartItem } from '@/types/cart';
+import { cartService } from '@/services/cart.service';
+import { getCartId, type Cart, type CartItem, type CartLoyaltyWallet } from '@/types/cart';
+import { formatCurrencyAmount, resolveCurrencySymbol } from '@/lib/currency';
 import { sanitizePositiveNumber } from '@/lib/utils';
 import { isLoyaltyError, resolveLoyaltyErrorMessage } from '@/lib/loyalty-errors';
 import { useTranslation } from 'react-i18next';
@@ -194,6 +196,7 @@ export default function CheckoutView() {
 
     // Wallet states
     const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null);
+    const [loyaltyWallet, setLoyaltyWallet] = useState<CartLoyaltyWallet | null>(null);
     const [walletAmountInput, setWalletAmountInput] = useState('');
     const [walletAppliedAmount, setWalletAppliedAmount] = useState(0);
 
@@ -292,7 +295,7 @@ export default function CheckoutView() {
         }
     }, [selectedAddressId, deliveryError]);
 
-    // Fetch Wallet Balance
+    // Account-wide Runmeal balance; only the fallback for the amount shown below.
     useEffect(() => {
         if (user) {
             walletService.getBalance()
@@ -300,6 +303,29 @@ export default function CheckoutView() {
                 .catch(err => console.error('Failed to fetch wallet balance', err));
         }
     }, [user]);
+
+    // What this cart's branch actually lets the user spend, per its loyalty provider.
+    useEffect(() => {
+        if (!user || !selectedCartId) {
+            setLoyaltyWallet(null);
+            return;
+        }
+
+        let isCurrent = true;
+        cartService.getLoyaltyWallet(selectedCartId)
+            .then(wallet => {
+                if (isCurrent) setLoyaltyWallet(wallet);
+            })
+            .catch(err => {
+                // Branches without a provider wallet fall back to the Runmeal balance.
+                console.error('Failed to fetch cart loyalty wallet', err);
+                if (isCurrent) setLoyaltyWallet(null);
+            });
+
+        return () => {
+            isCurrent = false;
+        };
+    }, [user, selectedCartId]);
 
 
     if (!user) {
@@ -327,9 +353,17 @@ export default function CheckoutView() {
         : t('checkout.errorTitle.generic');
     const branchUnavailableMessage = t('checkout.toast.branchUnavailable');
 
+    const spendableBalance = loyaltyWallet?.balance ?? walletBalance?.balance ?? 0;
+    const isBalanceSpendable = (loyaltyWallet?.usable ?? true) && spendableBalance > 0;
+    const balanceSymbol = resolveCurrencySymbol(loyaltyWallet?.currency);
+    const balanceTypeKey = loyaltyWallet && `cart.loyalty.balanceTypes.${loyaltyWallet.balanceType}`;
+    const balanceTypeLabel = balanceTypeKey
+        ? (t(balanceTypeKey) === balanceTypeKey ? loyaltyWallet.balanceType : t(balanceTypeKey))
+        : null;
+
     // --- Wallet Handlers ---
     const handleApplyWallet = (amountOverride?: number) => {
-        if (!walletBalance) return;
+        if (!isBalanceSpendable) return;
 
         let amount = amountOverride;
         if (amount === undefined) {
@@ -342,7 +376,7 @@ export default function CheckoutView() {
             return;
         }
 
-        if (amount > walletBalance.balance) {
+        if (amount > spendableBalance) {
             toast.error(t('checkout.toast.exceedBalance'));
             return;
         }
@@ -358,10 +392,9 @@ export default function CheckoutView() {
     };
 
     const handleUseMaxWallet = () => {
-        if (!walletBalance || !selectedCart) return;
+        if (!isBalanceSpendable || !selectedCart) return;
         const totalToPay = selectedCart.finalPrice ?? selectedCart.totalCartPrice ?? 0;
-        const maxAmount = Math.min(walletBalance.balance, totalToPay);
-        handleApplyWallet(maxAmount);
+        handleApplyWallet(Math.min(spendableBalance, totalToPay));
     };
 
     const handleRemoveWallet = () => {
@@ -721,8 +754,17 @@ export default function CheckoutView() {
                                     <div className="rounded-lg border border-orange-100 bg-orange-50/60 px-4 py-3">
                                         <span className="text-xs font-medium uppercase text-orange-700">{t('checkout.availableBalance')}</span>
                                         <div className="mt-1 text-2xl font-bold leading-none text-zinc-900">
-                                            ₺{walletBalance?.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                                            {formatCurrencyAmount(spendableBalance, balanceSymbol)}
                                         </div>
+                                        {loyaltyWallet && (
+                                            <p className="mt-1.5 text-xs text-zinc-500">
+                                                {t(`cart.loyalty.providers.${loyaltyWallet.provider}`)}
+                                                {balanceTypeLabel ? ` · ${balanceTypeLabel}` : ''}
+                                            </p>
+                                        )}
+                                        {loyaltyWallet && !loyaltyWallet.usable && (
+                                            <p className="mt-1 text-xs text-amber-600">{t('cart.loyalty.balanceNotUsable')}</p>
+                                        )}
                                     </div>
 
                                     {walletAppliedAmount > 0 ? (
@@ -754,7 +796,7 @@ export default function CheckoutView() {
                                                 />
                                                 <button
                                                     onClick={() => handleApplyWallet()}
-                                                    disabled={!walletBalance || walletBalance.balance <= 0 || !walletAmountInput}
+                                                    disabled={!isBalanceSpendable || !walletAmountInput}
                                                     className="bg-zinc-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                                 >
                                                     {t('checkout.apply')}
@@ -762,7 +804,7 @@ export default function CheckoutView() {
                                             </div>
                                             <button
                                                 onClick={handleUseMaxWallet}
-                                                disabled={!walletBalance || walletBalance.balance <= 0}
+                                                disabled={!isBalanceSpendable}
                                                 className="w-full bg-white text-orange-600 border border-orange-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                             >
                                                 {t('checkout.useAllBalance')}

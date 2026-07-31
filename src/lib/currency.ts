@@ -5,14 +5,21 @@ type CurrencySource = {
   currencySymbol?: string | null;
 };
 
+/** ISO codes we render with a symbol of their own; anything else keeps its code. */
+const ISO_CURRENCY_SYMBOLS: Record<string, string> = { TRY: DEFAULT_CURRENCY_SYMBOL };
+
+/** Turns an ISO code coming from the API into what we print, e.g. `TRY` → `₺`. */
+export function resolveCurrencySymbol(currency?: string | null): string | undefined {
+  const code = currency?.trim();
+  if (!code) return undefined;
+  return ISO_CURRENCY_SYMBOLS[code.toUpperCase()] ?? code;
+}
+
 export function getCurrencySymbol(source?: CurrencySource | null): string {
   const symbol = source?.currencySymbol?.trim();
   if (symbol) return symbol;
 
-  const currency = source?.currency?.trim().toUpperCase();
-  if (currency) return currency;
-
-  return DEFAULT_CURRENCY_SYMBOL;
+  return resolveCurrencySymbol(source?.currency) ?? DEFAULT_CURRENCY_SYMBOL;
 }
 
 export function formatCurrencyAmount(
