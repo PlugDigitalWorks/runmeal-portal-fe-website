@@ -414,6 +414,7 @@
     "retry": "Try again",
     "loadMore": "Show more",
     "unknownBranch": "Branch",
+    "orderNo": "Order #{{id}}",
     "answerAllHint": "Score every question to submit.",
     "submit": "Submit survey",
     "submitting": "Submitting...",

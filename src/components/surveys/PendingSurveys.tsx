@@ -143,6 +143,10 @@ export function PendingSurveys() {
                 <p className="break-words font-semibold text-zinc-900">
                   {survey.branchName || t('survey.unknownBranch')}
                 </p>
+                {/* Same short id getOrderDisplayId falls back to, so the two screens match. */}
+                <p className="mt-0.5 text-xs font-medium text-zinc-600">
+                  {t('survey.orderNo', { id: survey.orderId.slice(0, 8) })}
+                </p>
                 <p className="mt-0.5 text-xs text-zinc-500">
                   {new Date(survey.orderDate).toLocaleDateString('tr-TR', {
                     day: '2-digit',
