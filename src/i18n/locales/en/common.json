@@ -366,5 +366,65 @@
     "failedText": "Something went wrong during the payment process. Please try again.",
     "tryAgain": "Try Again",
     "contactSupport": "Contact Support"
+  },
+  "contact": {
+    "title": "Contact the Branch",
+    "subtitle": "Send your question or request straight to the branch.",
+    "loading": "Loading...",
+    "branchLabel": "Branch",
+    "optional": "(optional)",
+    "phoneLabel": "Phone",
+    "phoneHint": "Leave it blank to use the phone number saved on your account.",
+    "messageLabel": "Your message",
+    "messagePlaceholder": "Write the message you want to send to the branch.",
+    "submit": "Send",
+    "submitting": "Sending...",
+    "validation": {
+      "phoneFormat": "Enter the phone in international format, e.g. +905551234567",
+      "messageRequired": "Please write a message.",
+      "messageMax": "The message can be at most 5000 characters."
+    },
+    "toast": {
+      "success": "Your message was sent to the branch.",
+      "failed": "Your message could not be sent. Please try again."
+    },
+    "authRequired": {
+      "title": "Sign in required",
+      "description": "Sign in to your account to send a message to the branch.",
+      "action": "Sign in"
+    },
+    "incompleteProfile": {
+      "title": "Your profile is incomplete",
+      "description": "Your message is delivered together with your name, surname and e-mail. Complete your profile to continue.",
+      "action": "Go to profile"
+    },
+    "noBranch": {
+      "title": "Pick a branch first",
+      "description": "Choose a branch so we know where your message should go.",
+      "action": "Choose a branch"
+    }
+  },
+  "survey": {
+    "tab": "Surveys",
+    "title": "Order surveys",
+    "subtitle": "Rate the branch for your delivered orders.",
+    "loading": "Loading surveys...",
+    "empty": "You have no orders waiting to be rated.",
+    "loadError": "Surveys could not be loaded.",
+    "retry": "Try again",
+    "loadMore": "Show more",
+    "unknownBranch": "Branch",
+    "answerAllHint": "Score every question to submit.",
+    "submit": "Submit survey",
+    "submitting": "Submitting...",
+    "toast": {
+      "success": "Thanks for your feedback.",
+      "failed": "Your survey could not be submitted. Please try again."
+    },
+    "errors": {
+      "alreadyEvaluated": "This order has already been rated.",
+      "orderUnavailable": "This order can no longer be rated.",
+      "questionsChanged": "The survey questions changed. Please review the list and try again."
+    }
   }
 }

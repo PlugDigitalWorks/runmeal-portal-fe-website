@@ -9,6 +9,7 @@ import { useUser } from '@/context/UserContext';
 import { Address } from '@/types/address';
 import { userService } from '@/services/user.service';
 import { walletService } from '@/services/wallet.service';
+import { PendingSurveys } from '@/components/surveys/PendingSurveys';
 import { useTranslation } from 'react-i18next';
 import { AddressForm } from '@/components/address/AddressForm';
 import { Suspense } from 'react';
@@ -31,7 +32,7 @@ function ProfileContent() {
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [orders, setOrders] = useState<import('@/services/order.service').Order[]>([]);
-  const [activeTab, setActiveTab] = useState<'addresses' | 'orders'>('addresses');
+  const [activeTab, setActiveTab] = useState<'addresses' | 'orders' | 'surveys'>('addresses');
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [orderDetails, setOrderDetails] = useState<Record<string, import('@/services/order.service').OrderDetails>>({});
   const [loadingDetails, setLoadingDetails] = useState<Set<string>>(new Set());
@@ -55,7 +56,7 @@ function ProfileContent() {
 
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'orders' || tab === 'addresses') {
+    if (tab === 'orders' || tab === 'addresses' || tab === 'surveys') {
         setActiveTab(tab);
     }
   }, [searchParams]);
@@ -205,7 +206,23 @@ function ProfileContent() {
                 >
                     {t('profile.tabs.orders')}
                 </button>
+                <button
+                    onClick={() => setActiveTab('surveys')}
+                    className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'surveys' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-900'}`}
+                >
+                    {t('survey.tab')}
+                </button>
             </div>
+
+            {activeTab === 'surveys' && (
+                <div className="space-y-6">
+                    <div>
+                        <h3 className="font-semibold text-zinc-900">{t('survey.title')}</h3>
+                        <p className="mt-1 text-sm text-zinc-500">{t('survey.subtitle')}</p>
+                    </div>
+                    <PendingSurveys />
+                </div>
+            )}
 
             {activeTab === 'orders' && (
                 <div className="space-y-6">

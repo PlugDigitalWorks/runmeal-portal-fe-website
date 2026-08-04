@@ -10,10 +10,11 @@ import { CategoryList } from '@/components/categories/CategoryList';
 import { ProductList } from '@/components/products/ProductList';
 import { BranchStickyCart } from '@/components/branches/BranchStickyCart';
 import { useBranch } from '@/context/BranchContext';
-import { MapPin, ArrowLeft } from 'lucide-react';
+import { MapPin, ArrowLeft, MessageSquareText } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface BranchViewProps {
   branch: Branch;
@@ -22,6 +23,7 @@ interface BranchViewProps {
 }
 
 export function BranchView({ branch, categories, products }: BranchViewProps) {
+  const { t } = useTranslation();
   const searchParams = useSearchParams();
   const { setSelectedBranch } = useBranch();
   const [activeCategoryId, setActiveCategoryId] = useState<string | undefined>(
@@ -72,12 +74,19 @@ export function BranchView({ branch, categories, products }: BranchViewProps) {
                   className="object-cover"
                 />
               </div>
-              <div>
+              <div className="min-w-0">
                 <h1 className="text-2xl font-bold text-zinc-900">{branch.name}</h1>
                 <div className="flex items-center gap-2 text-zinc-500 text-sm mt-1">
                   <MapPin className="w-4 h-4" />
                   {branch.addressText}
                 </div>
+                <Link
+                  href={`/contact?branchId=${branch.id}`}
+                  className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-orange-600 underline-offset-4 transition-colors hover:text-orange-700 hover:underline"
+                >
+                  <MessageSquareText className="h-4 w-4" />
+                  {t('contact.title')}
+                </Link>
               </div>
             </div>
           </div>

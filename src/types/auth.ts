@@ -4,6 +4,21 @@ export interface ApiResponse<T> {
   data: T;
 }
 
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+/**
+ * Envelope for endpoints that flatten pagination: `data` is the page itself and
+ * `meta` sits beside it, rather than a `data.data` wrapper.
+ */
+export interface PaginatedApiResponse<T> extends ApiResponse<T[]> {
+  meta?: PaginationMeta;
+}
+
 export interface User {
   id: string;
   email: string;

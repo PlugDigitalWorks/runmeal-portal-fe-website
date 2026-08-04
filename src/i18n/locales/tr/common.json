@@ -366,5 +366,65 @@
     "failedText": "Ödeme işlemi sırasında bir şeyler ters gitti. Lütfen tekrar deneyin.",
     "tryAgain": "Tekrar Dene",
     "contactSupport": "Destek ile İletişime Geç"
+  },
+  "contact": {
+    "title": "Şubeye Ulaşın",
+    "subtitle": "Sorunuzu veya talebinizi doğrudan şubeye iletin.",
+    "loading": "Yükleniyor...",
+    "branchLabel": "Şube",
+    "optional": "(opsiyonel)",
+    "phoneLabel": "Telefon",
+    "phoneHint": "Boş bırakırsanız hesabınızdaki kayıtlı telefon kullanılır.",
+    "messageLabel": "Mesajınız",
+    "messagePlaceholder": "Şubeye iletmek istediğiniz mesajı yazın.",
+    "submit": "Gönder",
+    "submitting": "Gönderiliyor...",
+    "validation": {
+      "phoneFormat": "Telefonu uluslararası formatta girin. Örnek: +905551234567",
+      "messageRequired": "Lütfen bir mesaj yazın.",
+      "messageMax": "Mesaj en fazla 5000 karakter olabilir."
+    },
+    "toast": {
+      "success": "Mesajınız şubeye iletildi.",
+      "failed": "Mesajınız gönderilemedi. Lütfen tekrar deneyin."
+    },
+    "authRequired": {
+      "title": "Giriş yapmanız gerekiyor",
+      "description": "Şubeye mesaj gönderebilmek için hesabınıza giriş yapın.",
+      "action": "Giriş yap"
+    },
+    "incompleteProfile": {
+      "title": "Profiliniz eksik",
+      "description": "Mesajınız adınız, soyadınız ve e-posta adresinizle birlikte iletiliyor. Devam etmek için profilinizi tamamlayın.",
+      "action": "Profile git"
+    },
+    "noBranch": {
+      "title": "Önce bir şube seçin",
+      "description": "Mesajınızın hangi şubeye gideceğini belirlemek için bir şube seçmeniz gerekiyor.",
+      "action": "Şube seç"
+    }
+  },
+  "survey": {
+    "tab": "Değerlendirme",
+    "title": "Sipariş değerlendirmeleri",
+    "subtitle": "Teslim edilen siparişleriniz için şubeye puan verin.",
+    "loading": "Değerlendirmeler yükleniyor...",
+    "empty": "Değerlendirme bekleyen siparişiniz yok.",
+    "loadError": "Değerlendirmeler yüklenemedi.",
+    "retry": "Tekrar dene",
+    "loadMore": "Daha fazla göster",
+    "unknownBranch": "Şube",
+    "answerAllHint": "Göndermek için tüm soruları puanlayın.",
+    "submit": "Değerlendirmeyi gönder",
+    "submitting": "Gönderiliyor...",
+    "toast": {
+      "success": "Değerlendirmeniz için teşekkürler.",
+      "failed": "Değerlendirmeniz gönderilemedi. Lütfen tekrar deneyin."
+    },
+    "errors": {
+      "alreadyEvaluated": "Bu sipariş daha önce değerlendirilmiş.",
+      "orderUnavailable": "Bu sipariş artık değerlendirilemiyor.",
+      "questionsChanged": "Anket soruları güncellendi. Lütfen listeyi kontrol edip tekrar deneyin."
+    }
   }
 }
