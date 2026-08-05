@@ -1,4 +1,4 @@
-import { api } from '@/lib/axios';
+import { api, authApi } from '@/lib/axios';
 import {
   LoginDto,
   RegisterDto,
@@ -9,13 +9,9 @@ import {
   RefreshResponse,
   GoogleLoginStartResponse,
 } from '@/types/auth';
-import axios from 'axios';
 import Cookies from 'js-cookie';
 
 const AUTH_CLIENT = 'user';
-
-const getDirectApiUrl = () =>
-  (process.env.NEXT_PUBLIC_API_URL || '/api').replace(/\/+$/, '');
 
 const persistAuthResponse = (data: AuthResponse) => {
   const { accessToken, refreshToken, sid, user } = data;
@@ -77,23 +73,16 @@ export const authService = {
   },
 
   async startGoogleLogin() {
-    const response = await axios.post<ApiResponse<GoogleLoginStartResponse>>(
-      `${getDirectApiUrl()}/auth/login`,
+    const response = await authApi.post<ApiResponse<GoogleLoginStartResponse>>(
+      '/auth/login',
       { method: 'google', client: AUTH_CLIENT },
-      {
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-mode': 'body',
-        },
-      },
     );
 
     return response.data.data;
   },
 
   async refreshSessionFromCookies() {
-    const response = await api.post<ApiResponse<RefreshResponse>>('/auth/refresh', {});
+    const response = await authApi.post<ApiResponse<RefreshResponse>>('/auth/refresh', {});
     persistRefreshResponse(response.data.data);
     return response.data.data;
   },

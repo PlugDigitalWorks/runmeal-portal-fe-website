@@ -6,8 +6,31 @@ const API_URL =
     ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000') 
     : '/api';
 
+/**
+ * Auth endpoints must bypass the `/api` rewrite and hit the API host directly.
+ *
+ * The backend issues `refresh`/`sid` on the API origin scoped to
+ * `Path=/auth/refresh`. A call to `/api/auth/refresh` does not path-match that
+ * cookie, so the browser never attaches it and refresh answers 401. Both hosts
+ * sit under `runmeal.com`, so the cookie is same-site and CORS already allows
+ * credentialed requests from the portal origin.
+ */
+export const AUTH_API_URL = (
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+).replace(/\/+$/, '');
+
 export const api = axios.create({
   baseURL: API_URL,
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json',
+    'x-auth-mode': 'body', // Request tokens in body
+  },
+});
+
+/** Direct-to-API client for auth calls that depend on the API host's cookies. */
+export const authApi = axios.create({
+  baseURL: AUTH_API_URL,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -98,17 +121,11 @@ api.interceptors.response.use(
           sid = Cookies.get('sid');
       }
 
-        if (!refreshToken || !sid) {
-           throw new Error('No refresh token available');
-        }
-
-        const response = await axios.post(`${API_URL}/auth/refresh`, {
-            refreshToken,
-            sid
-        }, {
-             headers: {
-                'x-auth-mode': 'body'
-            }
+        // Direct to the API host: Google sessions carry no JS-readable
+        // refreshToken/sid, so the httpOnly `refresh` cookie is the only
+        // credential here and it only travels to the API origin.
+        const response = await authApi.post('/auth/refresh', {
+            ...(refreshToken && sid ? { refreshToken, sid } : {}),
         });
 
         const data = response.data.data || response.data;
