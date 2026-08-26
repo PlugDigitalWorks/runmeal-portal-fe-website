@@ -9,8 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 import { Branch } from '@/types/branch';
 import { branchService } from '@/services/branch.service';
-import Image from 'next/image';
-import { DEFAULT_PRODUCT_IMAGE } from '@/lib/constants';
+import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 import { CartDetail } from './CartDetail';
 import { useTranslation } from 'react-i18next';
 
@@ -140,11 +139,13 @@ export function CartDrawer() {
                                                 {(cart.items || []).map(item => (
                                                     <div key={item.id} className="flex gap-3">
                                                         <div className="h-16 w-16 bg-zinc-50 rounded-lg relative overflow-hidden shrink-0">
-                                                            <Image
-                                                                src={item.imgUrl || DEFAULT_PRODUCT_IMAGE}
+                                                            <ImageWithFallback
+                                                                src={item.imgUrl}
                                                                 alt={item.productName || ''}
                                                                 fill
-                                                                className={item.imgUrl ? 'object-cover' : 'object-contain p-1.5 opacity-90'}
+                                                                sizes="64px"
+                                                                className="object-cover"
+                                                                fallbackClassName="object-contain p-1.5 opacity-40"
                                                             />
                                                         </div>
                                                         <div className="flex-1 min-w-0">

@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 import Link from 'next/link';
 import { useUser } from '@/context/UserContext';
 import { branchService } from '@/services/branch.service';
 import { Branch } from '@/types/branch';
-import { MapPin, Building2 } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 export default function Home() {
@@ -123,18 +124,13 @@ export default function Home() {
                             className="group bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-zinc-100 block"
                         >
                             <div className="h-40 bg-zinc-100 relative">
-                                {branch.bannerUrls && branch.bannerUrls[0] ? (
-                                    <Image
-                                        src={branch.bannerUrls[0]}
-                                        alt={branch.name}
-                                        fill
-                                        className="object-cover"
-                                    />
-                                ) : (
-                                    <div className="absolute inset-0 flex items-center justify-center text-zinc-400">
-                                        <Building2 className="h-12 w-12 opacity-20" />
-                                    </div>
-                                )}
+                                <ImageWithFallback
+                                    src={branch.bannerUrls?.[0]}
+                                    alt={branch.name}
+                                    fill
+                                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                                    className="object-cover"
+                                />
                             </div>
                             <div className="p-6">
                                 <h3 className="text-lg font-bold text-zinc-900 mb-2">{branch.name}</h3>

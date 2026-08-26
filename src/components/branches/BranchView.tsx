@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 import { useEffect } from 'react';
 
 import { Branch } from '@/types/branch';
@@ -67,11 +67,13 @@ export function BranchView({ branch, categories, products }: BranchViewProps) {
 
             <div className="flex items-start md:items-center gap-4">
               <div className="w-16 h-16 bg-zinc-100 rounded-lg flex items-center justify-center shrink-0 overflow-hidden relative">
-                <Image
-                  src={branch.logoUrl || '/logo.svg'}
+                <ImageWithFallback
+                  src={branch.logoUrl}
                   alt={branch.name}
                   fill
+                  sizes="64px"
                   className="object-cover"
+                  fallbackClassName="object-contain p-2 opacity-40"
                 />
               </div>
               <div className="min-w-0">

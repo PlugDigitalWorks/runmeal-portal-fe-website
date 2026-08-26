@@ -4,11 +4,10 @@ import { useState } from 'react';
 import { Product } from '@/types/product';
 import { useCart } from '@/context/CartContext';
 import { useBranch } from '@/context/BranchContext';
-import Image from 'next/image';
 import { Plus } from 'lucide-react';
 import { CartAddonSelection, CartOptionSelection, ProductDetailModal } from './ProductDetailModal';
 import { formatCurrencyAmount, getCurrencySymbol } from '@/lib/currency';
-import { DEFAULT_PRODUCT_IMAGE } from '@/lib/constants';
+import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 
 interface ProductListProps {
   products: Product[];
@@ -83,22 +82,14 @@ export function ProductList({ products, branchId }: ProductListProps) {
               className="group bg-white rounded-lg border border-zinc-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden flex flex-row h-32"
             >
               <div className="relative w-32 h-full bg-zinc-100 shrink-0">
-                {(product.image || product.imageUrl) ? (
-                  <Image
-                    src={product.imageUrl || product.image || ''}
-                    alt={product.name}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    unoptimized
-                  />
-                ) : (
-                  <Image
-                    src={DEFAULT_PRODUCT_IMAGE}
-                    alt={product.name}
-                    fill
-                    className="object-contain p-3 opacity-90"
-                  />
-                )}
+                <ImageWithFallback
+                  src={product.imageUrl || product.image}
+                  alt={product.name}
+                  fill
+                  sizes="128px"
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  fallbackClassName="object-contain p-3 opacity-40"
+                />
               </div>
 
               <div className="p-3 flex-1 flex flex-col justify-between min-w-0">

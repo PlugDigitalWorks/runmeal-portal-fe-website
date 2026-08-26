@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Image from 'next/image';
 import { Gift, RefreshCw, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -9,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ProductRewardProgress } from '@/components/cart/ProductRewardProgress';
 import { RewardItemPicker } from '@/components/cart/RewardItemPicker';
 import { useCart } from '@/context/CartContext';
-import { DEFAULT_PRODUCT_IMAGE } from '@/lib/constants';
+import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 import { resolveUnapplicableReason } from '@/lib/loyalty-errors';
 import {
   getProductReward,
@@ -265,7 +264,6 @@ function PromotionRow({
   onRemove: () => void;
 }) {
   const { t } = useTranslation();
-  const [imageSrc, setImageSrc] = useState(() => promotion.imageUrl || DEFAULT_PRODUCT_IMAGE);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const unapplicableReason = resolveUnapplicableReason(promotion.unapplicableReason, t);
 
@@ -310,14 +308,13 @@ function PromotionRow({
       }`}
     >
       <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-white">
-        <Image
-          src={imageSrc}
+        <ImageWithFallback
+          src={promotion.imageUrl}
           alt=""
           fill
-          unoptimized
           sizes="48px"
-          className={imageSrc === DEFAULT_PRODUCT_IMAGE ? 'object-contain p-1.5 opacity-90' : 'object-cover'}
-          onError={() => setImageSrc(DEFAULT_PRODUCT_IMAGE)}
+          className="object-cover"
+          fallbackClassName="object-contain p-1.5 opacity-40"
         />
       </div>
 

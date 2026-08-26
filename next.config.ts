@@ -7,7 +7,6 @@ const isDev = process.env.NODE_ENV === "development";
 const apiOrigin = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   reactCompiler: true,
   images: {
     remotePatterns: [
@@ -27,6 +26,8 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "static.photos",
       },
+      { protocol: "https", hostname: "*.s3.*.amazonaws.com" },
+      { protocol: "https", hostname: "*.s3.amazonaws.com" },
       { protocol: "http", hostname: "localhost", port: "9000" },
       { protocol: "http", hostname: "127.0.0.1", port: "9000" },
     ],

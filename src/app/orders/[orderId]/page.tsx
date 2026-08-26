@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, CalendarClock, CreditCard, MapPin, Package, ReceiptText, Store, Wallet } from 'lucide-react';
@@ -8,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { branchService } from '@/services/branch.service';
 import { Order, OrderDetails } from '@/services/order.service';
-import { RUNMEAL_LOGO } from '@/lib/constants';
+import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 import { Branch } from '@/types/branch';
 import { DiscountedLinePrice } from '@/components/ui/DiscountedLinePrice';
 import { OrderPromotionSnapshots } from '@/components/orders/OrderPromotionSnapshots';
@@ -134,7 +133,7 @@ export default function OrderDetailPage() {
   const creditUsed = toNumber(order?.creditUsedAmount);
   const branchName = branch?.name || order?.branchName || 'Branch';
   const branchAddress = branch?.addressText || order?.branchAddressText || '-';
-  const logoUrl = branch?.logoUrl || order?.branchLogoUrl || RUNMEAL_LOGO;
+  const logoUrl = branch?.logoUrl || order?.branchLogoUrl;
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center pt-20">{t('orders.loading')}</div>;
@@ -169,13 +168,13 @@ export default function OrderDetailPage() {
             <CardContent className="p-5 sm:p-6">
               <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
                 <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-zinc-100">
-                  <Image
+                  <ImageWithFallback
                     src={logoUrl}
                     alt={branchName}
                     fill
                     sizes="80px"
                     className="object-cover"
-                    unoptimized
+                    fallbackClassName="object-contain p-2 opacity-40"
                   />
                 </div>
 

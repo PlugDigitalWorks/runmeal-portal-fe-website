@@ -1,12 +1,11 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Image from 'next/image';
 import { Product, OptionGroup, ProductOptionGroupType } from '@/types/product';
 import { useBranch } from '@/context/BranchContext';
 import { catalogService } from '@/services/catalog.service';
 import { formatCurrencyAmount, getCurrencySymbol } from '@/lib/currency';
-import { DEFAULT_PRODUCT_IMAGE } from '@/lib/constants';
+import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 import { X, Minus, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -217,22 +216,14 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
 
                 {/* Header Image */}
                 <div className="relative h-48 sm:h-56 bg-zinc-100 shrink-0">
-                    {(product.imageUrl || product.image) ? (
-                        <Image
-                            src={product.imageUrl || product.image || ''}
-                            alt={product.name}
-                            fill
-                            className="object-cover"
-                            unoptimized
-                        />
-                    ) : (
-                        <Image
-                            src={DEFAULT_PRODUCT_IMAGE}
-                            alt={product.name}
-                            fill
-                            className="object-contain p-8 opacity-90"
-                        />
-                    )}
+                    <ImageWithFallback
+                        src={product.imageUrl || product.image}
+                        alt={product.name}
+                        fill
+                        sizes="(max-width: 640px) 100vw, 512px"
+                        className="object-cover"
+                        fallbackClassName="object-contain p-8 opacity-40"
+                    />
                     <button
                         onClick={onClose}
                         className="absolute top-4 right-4 bg-white/80 hover:bg-white p-2 rounded-full shadow-sm transition-colors text-zinc-800"
