@@ -55,6 +55,16 @@ export interface LoginDto {
   recaptchaToken?: string;
 }
 
+export interface OtpRequestResponse {
+  message: string;
+  method?: 'otp';
+}
+
+export interface VerifyOtpDto {
+  email: string;
+  code: string;
+}
+
 export interface GoogleLoginStartResponse {
   method: 'google';
   redirectUrl: string;
@@ -66,7 +76,9 @@ export interface RegisterDto {
   email: string;
   firstName: string;
   lastName: string;
-  password: string;
+  password?: string;
+  country?: string;
+  role?: string;
   latitude?: string;
   longitude?: string;
 }

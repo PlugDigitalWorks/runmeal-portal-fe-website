@@ -11,7 +11,7 @@ import { Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { contactService } from '@/services/contact.service';
-import { getApiErrorMessage } from '@/lib/loyalty-errors';
+import { resolveApiErrorMessage } from '@/lib/api-errors';
 import { CONTACT_MESSAGE_MAX_LENGTH } from '@/types/contact';
 
 // Same shape the address form validates against, so a phone accepted there is
@@ -72,7 +72,7 @@ export function ContactForm({ branchId, branchName, brandId }: ContactFormProps)
       reset({ phoneE164: '', message: '' });
     } catch (error) {
       console.error('Contact request failed', error);
-      toast.error(getApiErrorMessage(error, t('contact.toast.failed')));
+      toast.error(resolveApiErrorMessage(error, t('contact.toast.failed')));
     }
   });
 

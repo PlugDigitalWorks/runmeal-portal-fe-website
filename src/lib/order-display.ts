@@ -1,4 +1,5 @@
 import { Order, OrderItem } from "@/services/order.service";
+import { DEFAULT_CURRENCY_SYMBOL } from "@/lib/currency";
 
 export function toNumber(value: number | string | null | undefined): number {
   if (typeof value === "number") return Number.isFinite(value) ? value : 0;
@@ -10,13 +11,19 @@ export function toNumber(value: number | string | null | undefined): number {
   return 0;
 }
 
-export function formatCurrency(value: number | string | null | undefined): string {
+export function formatCurrency(
+  value: number | string | null | undefined,
+  symbol: string | null | undefined = DEFAULT_CURRENCY_SYMBOL,
+): string {
   const amount = toNumber(value);
   const formatted = amount.toLocaleString("tr-TR", {
     minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
     maximumFractionDigits: 2,
   });
-  return `₺${formatted}`;
+  const resolved = symbol?.trim() || DEFAULT_CURRENCY_SYMBOL;
+  // ISO codes need a space before the amount; a glyph like ₺ does not.
+  const separator = /^[A-Z]{3}$/.test(resolved) ? " " : "";
+  return `${resolved}${separator}${formatted}`;
 }
 
 export function formatOrderDate(value: string | null | undefined): string {

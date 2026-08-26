@@ -7,7 +7,8 @@ import { ClipboardCheck, Star } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { surveyService } from '@/services/survey.service';
-import { getApiErrorMessage, getApiErrorStatus } from '@/lib/loyalty-errors';
+import { getApiErrorStatus } from '@/lib/loyalty-errors';
+import { resolveApiErrorMessage } from '@/lib/api-errors';
 import { formatCurrencyAmount, resolveCurrencySymbol } from '@/lib/currency';
 import {
   isSurveyComplete,
@@ -85,10 +86,10 @@ export function PendingSurveys() {
         toast.error(t('survey.errors.orderUnavailable'));
         await load(1, { append: false });
       } else if (status === 400) {
-        toast.error(getApiErrorMessage(error, t('survey.errors.questionsChanged')));
+        toast.error(resolveApiErrorMessage(error, t('survey.errors.questionsChanged')));
         await load(1, { append: false });
       } else {
-        toast.error(getApiErrorMessage(error, t('survey.toast.failed')));
+        toast.error(resolveApiErrorMessage(error, t('survey.toast.failed')));
       }
     } finally {
       setSubmittingOrderId(null);

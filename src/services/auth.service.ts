@@ -8,10 +8,19 @@ import {
   ResetPasswordDto,
   RefreshResponse,
   GoogleLoginStartResponse,
+  OtpRequestResponse,
+  VerifyOtpDto,
 } from '@/types/auth';
 import Cookies from 'js-cookie';
 
 const AUTH_CLIENT = 'user';
+
+const unwrapAuthData = <T>(payload: ApiResponse<T> | T): T => {
+  if (payload && typeof payload === 'object' && 'data' in payload) {
+    return (payload as ApiResponse<T>).data;
+  }
+  return payload as T;
+};
 
 const persistAuthResponse = (data: AuthResponse) => {
   const { accessToken, refreshToken, sid, user } = data;
@@ -70,6 +79,28 @@ export const authService = {
     persistAuthResponse(response.data.data);
 
     return response.data.data;
+  },
+
+  async requestOtpLogin(email: string, recaptchaToken?: string) {
+    const response = await api.post<ApiResponse<OtpRequestResponse> | OtpRequestResponse>('/auth/login', {
+      email,
+      method: 'otp',
+      client: AUTH_CLIENT,
+      ...(recaptchaToken ? { recaptchaToken } : {}),
+    });
+    return unwrapAuthData(response.data);
+  },
+
+  async registerWithOtp(data: Omit<RegisterDto, 'password'>) {
+    const response = await api.post<ApiResponse<OtpRequestResponse> | OtpRequestResponse>('/auth/register', data);
+    return unwrapAuthData(response.data);
+  },
+
+  async verifyOtp(data: VerifyOtpDto) {
+    const response = await api.post<ApiResponse<AuthResponse> | AuthResponse>('/auth/verify-otp', data);
+    const authResponse = unwrapAuthData(response.data);
+    persistAuthResponse(authResponse);
+    return authResponse;
   },
 
   async startGoogleLogin() {

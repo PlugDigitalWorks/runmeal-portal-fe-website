@@ -32,6 +32,16 @@ export const userService = {
     return response.data.data;
   },
 
+  /**
+   * Marks one address as the account's active one. The backend clears the flag
+   * on every other address, which a plain `updateAddress({ isActive: true })`
+   * does not do.
+   */
+  async setActiveAddress(id: string) {
+    const response = await api.patch<ApiResponse<{ message: string }>>(`/addresses/${id}/set-active`);
+    return response.data.data;
+  },
+
   async deleteAddress(id: string) {
     const response = await api.delete<void>(`/addresses/${id}`);
     return response.data;

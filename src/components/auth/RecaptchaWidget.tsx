@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { getRecaptchaSiteKey, loadRecaptchaScript } from '@/lib/recaptcha';
 
@@ -10,6 +11,7 @@ interface RecaptchaWidgetProps {
 }
 
 export function RecaptchaWidget({ onTokenChange, resetKey }: RecaptchaWidgetProps) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const widgetIdRef = useRef<number | null>(null);
   const onTokenChangeRef = useRef(onTokenChange);
@@ -73,7 +75,7 @@ export function RecaptchaWidget({ onTokenChange, resetKey }: RecaptchaWidgetProp
         <div ref={containerRef} />
         {loadError && (
           <p className="mt-2 text-center text-xs text-red-500">
-            Security check could not be loaded.
+            {t('auth.validation.securityCheckLoad')}
           </p>
         )}
       </div>

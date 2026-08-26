@@ -7,6 +7,7 @@ import { X, Trash2, Plus, Minus } from 'lucide-react';
 import Image from 'next/image';
 import { DEFAULT_PRODUCT_IMAGE } from '@/lib/constants';
 import { CartPromotions } from '@/components/cart/CartPromotions';
+import { DiscountedLinePrice } from '@/components/ui/DiscountedLinePrice';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
@@ -79,9 +80,13 @@ export function CartDetail({ cart, branch, onClose }: CartDetailProps) {
                                         ) : null}
                                         
                                         <div className="flex justify-between items-center">
-                                            <span className="font-semibold text-zinc-900">
-                                                ₺{(item.price * item.qty).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                            </span>
+                                            <DiscountedLinePrice
+                                                className="font-semibold text-zinc-900"
+                                                lineTotal={item.lineTotal}
+                                                discountAmount={item.discountAmount}
+                                                finalLineTotal={item.finalLineTotal}
+                                                fallbackTotal={item.price * item.qty}
+                                            />
                                             
                                             <div className="flex items-center gap-3 bg-white border border-zinc-200 rounded-full px-2 py-1 shadow-sm">
                                                 <button 
@@ -119,7 +124,12 @@ export function CartDetail({ cart, branch, onClose }: CartDetailProps) {
                     {/* Loyalty Campaigns (Rekonect) */}
                     {cartId ? (
                         <div className="bg-white rounded-xl p-4 border border-zinc-100 shadow-sm">
-                            <CartPromotions cartId={cartId} appliedPromotions={cart.appliedPromotions} />
+                            <CartPromotions
+                                cartId={cartId}
+                                appliedPromotions={cart.appliedPromotions}
+                                cartItems={cart.items}
+                                menuHref={cart.branchId ? `/branches/${cart.branchId}` : '/'}
+                            />
                         </div>
                     ) : null}
 

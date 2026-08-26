@@ -51,16 +51,21 @@ vi.mock('sonner', () => ({
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => stable.translation,
+  // The context now resolves API error codes through `@/lib/api-errors`,
+  // which pulls in the i18n config module.
+  initReactI18next: { type: '3rdParty', init: () => {} },
 }));
 
 const mockedCartService = vi.mocked(cartService);
 
 const CART_ID = 'cart-1';
+/** Must match `stable.selectedBranch.id` — every cart call is branch scoped. */
+const BRANCH_ID = 'branch-1';
 
 const buildCart = (overrides: Partial<Cart> = {}): Cart => ({
   cartId: CART_ID,
   brandId: 'brand-1',
-  branchId: 'branch-1',
+  branchId: BRANCH_ID,
   userId: 'user-1',
   totalCartPrice: 270,
   discountAmount: 0,
@@ -163,7 +168,12 @@ describe('CartContext promotions', () => {
     expect(screen.getByTestId('total')).toHaveTextContent('270');
     expect(screen.getByTestId('discount')).toHaveTextContent('89');
     expect(screen.getByTestId('final')).toHaveTextContent('181');
-    expect(mockedCartService.applyPromotion).toHaveBeenCalledWith(CART_ID, rekonect('promo-a'), 'DELIVERY');
+    expect(mockedCartService.applyPromotion).toHaveBeenCalledWith(
+      CART_ID,
+      rekonect('promo-a'),
+      'DELIVERY',
+      BRANCH_ID,
+    );
   });
 
   it('applies an internal coupon through the same mutation', async () => {
@@ -184,6 +194,7 @@ describe('CartContext promotions', () => {
       CART_ID,
       { type: LoyaltyProviderType.INTERNAL, promotionCode: 'WELCOME10' },
       'DELIVERY',
+      BRANCH_ID,
     );
   });
 
@@ -200,9 +211,11 @@ describe('CartContext promotions', () => {
     fireEvent.click(screen.getByText('remove-coupon'));
 
     await waitFor(() => expect(screen.getByTestId('applied')).toHaveTextContent(''));
-    expect(mockedCartService.removePromotion).toHaveBeenCalledWith(CART_ID, {
-      type: LoyaltyProviderType.INTERNAL,
-    });
+    expect(mockedCartService.removePromotion).toHaveBeenCalledWith(
+      CART_ID,
+      { type: LoyaltyProviderType.INTERNAL },
+      BRANCH_ID,
+    );
   });
 
   it('supports several campaigns at once and keeps the others when one is removed', async () => {
@@ -235,7 +248,7 @@ describe('CartContext promotions', () => {
     await waitFor(() => expect(screen.getByTestId('applied')).toHaveTextContent('REKONECT:promo-b'));
     expect(screen.getByTestId('applied')).not.toHaveTextContent('promo-a');
     expect(screen.getByTestId('final')).toHaveTextContent('231');
-    expect(mockedCartService.removePromotion).toHaveBeenCalledWith(CART_ID, rekonect('promo-a'));
+    expect(mockedCartService.removePromotion).toHaveBeenCalledWith(CART_ID, rekonect('promo-a'), BRANCH_ID);
   });
 
   it('ignores a double click on the same campaign but allows a different one', async () => {
@@ -275,7 +288,7 @@ describe('CartContext promotions', () => {
 
     fireEvent.click(screen.getByText('apply-a'));
 
-    await waitFor(() => expect(mockedCartService.getCart).toHaveBeenCalledWith(CART_ID));
+    await waitFor(() => expect(mockedCartService.getCart).toHaveBeenCalledWith(CART_ID, BRANCH_ID));
     await waitFor(() => expect(screen.getByTestId('applied')).toHaveTextContent('REKONECT:promo-b'));
     expect(screen.getByTestId('final')).toHaveTextContent('231');
   });

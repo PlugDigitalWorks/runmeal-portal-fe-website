@@ -21,6 +21,7 @@ import {
   isCartStaleLoyaltyError,
   resolveLoyaltyErrorMessage,
 } from '@/lib/loyalty-errors';
+import { resolveApiErrorMessage } from '@/lib/api-errors';
 
 type CartOptionInput = {
   groupId?: string;
@@ -47,19 +48,6 @@ const DEFAULT_ORDER_TYPE = 'DELIVERY';
 /** Identifies an in-flight promotion mutation; `*` covers "remove every promotion of this provider". */
 const promotionMutationKey = (cartId: string, { type, promotionCode }: RemovePromotionInput) =>
   `${cartId}::${type}:${promotionCode ?? '*'}`;
-
-type ApiError = {
-  response?: {
-    data?: {
-      message?: string | string[];
-    };
-  };
-};
-
-const getApiErrorMessage = (error: unknown, fallback: string) => {
-  const message = (error as ApiError).response?.data?.message;
-  return Array.isArray(message) ? message.join(' ') : message || fallback;
-};
 
 // Simplified Cart Item for Guest (Local Storage)
 interface GuestCartItem {
@@ -100,6 +88,13 @@ interface CartContextType {
   promotionsVersion: number;
   loadAvailablePromotions: (cartId: string) => Promise<void>;
   invalidateAvailablePromotions: () => void;
+  /**
+   * Order type the promotion lists are resolved for. A campaign can be valid on
+   * delivery and not on pickup, so checkout pushes its selection in here and the
+   * backend re-answers `available` accordingly.
+   */
+  promotionOrderType: string;
+  setPromotionOrderType: (orderType: string) => void;
   isPromotionsLoading: (cartId: string) => boolean;
   hasPromotionsError: (cartId: string) => boolean;
   applyPromotion: (cartId: string, input: ApplyPromotionInput) => Promise<boolean>;
@@ -128,17 +123,36 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedCartId, setSelectedCartId] = useState<string | undefined>(undefined);
+  const [promotionOrderType, setPromotionOrderTypeState] = useState<string>(DEFAULT_ORDER_TYPE);
   const [availablePromotionsByCart, setAvailablePromotionsByCart] = useState<Record<string, CartPromotion[]>>({});
   const [promotionsLoadingCartIds, setPromotionsLoadingCartIds] = useState<string[]>([]);
   const [promotionsErrorCartIds, setPromotionsErrorCartIds] = useState<string[]>([]);
   const [promotionsVersion, setPromotionsVersion] = useState(0);
   const [pendingPromotionKeys, setPendingPromotionKeys] = useState<string[]>([]);
+  /** Read inside callbacks that must not re-create on every cart change. */
+  const cartsRef = useRef<Cart[]>([]);
+  const promotionOrderTypeRef = useRef<string>(DEFAULT_ORDER_TYPE);
   const promotionsLoadingRef = useRef<Set<string>>(new Set());
   const pendingPromotionKeysRef = useRef<Set<string>>(new Set());
   const isMountedRef = useRef(true);
   const hasSyncedRef = useRef(false);
 
   const isAuthenticated = !!user;
+
+  useEffect(() => {
+    cartsRef.current = carts;
+  }, [carts]);
+
+  /**
+   * Switching order type invalidates the cached lists: the same campaign can be
+   * applicable on delivery and not on pickup.
+   */
+  const setPromotionOrderType = useCallback((orderType: string) => {
+    if (promotionOrderTypeRef.current === orderType) return;
+    promotionOrderTypeRef.current = orderType;
+    setPromotionOrderTypeState(orderType);
+    setPromotionsVersion((version) => version + 1);
+  }, []);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -191,19 +205,32 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setCart((previousCart) => (getCartId(previousCart) === incomingId ? merge(previousCart) : previousCart));
   }, []);
 
+  /**
+   * The branch a cart belongs to. Every cart call is branch scoped and the
+   * portal holds one cart per branch, so the header has to follow the cart —
+   * not whichever branch the user happens to be browsing.
+   */
+  const resolveCartBranchId = useCallback(
+    (cartId: string) =>
+      cartsRef.current.find((candidate) => getCartId(candidate) === cartId)?.branchId
+        ?? selectedBranch?.id
+        ?? null,
+    [selectedBranch?.id],
+  );
+
   /** Re-fetches a single cart. The backend re-validates promotions on every read. */
   const refreshSingleCart = useCallback(async (cartId: string) => {
     if (!isAuthenticated || !cartId) return null;
 
     try {
-      const freshCart = await cartService.getCart(cartId);
+      const freshCart = await cartService.getCart(cartId, resolveCartBranchId(cartId));
       upsertCart(freshCart);
       return freshCart;
     } catch (error) {
       console.error(`Failed to refresh cart ${cartId}`, error);
       return null;
     }
-  }, [isAuthenticated, upsertCart]);
+  }, [isAuthenticated, upsertCart, resolveCartBranchId]);
 
   // Load User Carts (multi-cart) with full details including items
   const refreshCarts = useCallback(async () => {
@@ -400,7 +427,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         await refreshCarts();
       } catch (e: unknown) {
         console.error("Add to cart failed", e);
-        toast.error(getApiErrorMessage(e, t('cart.toast.addFailed')));
+        toast.error(resolveApiErrorMessage(e, t('cart.toast.addFailed')));
       } finally {
         setIsLoading(false);
       }
@@ -574,7 +601,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (isAuthenticated) {
       setIsLoading(true);
       try {
-        await cartService.clearCart(cartId);
+        await cartService.clearCart(cartId, resolveCartBranchId(cartId));
         invalidateAvailablePromotions();
         await refreshCarts();
         toast.success(t('cart.toast.cleared'));
@@ -606,7 +633,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setPromotionsLoadingCartIds(Array.from(promotionsLoadingRef.current));
 
     try {
-      const promotions = await cartService.getAvailablePromotions(cartId, DEFAULT_ORDER_TYPE);
+      const promotions = await cartService.getAvailablePromotions(
+        cartId,
+        promotionOrderTypeRef.current,
+        resolveCartBranchId(cartId),
+      );
       if (!isMountedRef.current) return;
       setAvailablePromotionsByCart((previous) => ({ ...previous, [cartId]: promotions ?? [] }));
       setPromotionsErrorCartIds((previous) => previous.filter((id) => id !== cartId));
@@ -622,7 +653,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         setPromotionsLoadingCartIds(Array.from(promotionsLoadingRef.current));
       }
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, resolveCartBranchId]);
 
   const isPromotionsLoading = useCallback(
     (cartId: string) => promotionsLoadingCartIds.includes(cartId),
@@ -678,7 +709,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (!beginPromotionMutation(key)) return false;
 
     try {
-      const updatedCart = await cartService.applyPromotion(cartId, input, DEFAULT_ORDER_TYPE);
+      const updatedCart = await cartService.applyPromotion(
+        cartId,
+        input,
+        promotionOrderTypeRef.current,
+        resolveCartBranchId(cartId),
+      );
       upsertCart(updatedCart);
       invalidateAvailablePromotions();
       if (isMountedRef.current) {
@@ -698,6 +734,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     upsertCart,
     invalidateAvailablePromotions,
     handlePromotionError,
+    resolveCartBranchId,
     t,
   ]);
 
@@ -709,7 +746,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (!beginPromotionMutation(key)) return false;
 
     try {
-      const updatedCart = await cartService.removePromotion(cartId, input);
+      const updatedCart = await cartService.removePromotion(cartId, input, resolveCartBranchId(cartId));
       upsertCart(updatedCart);
       invalidateAvailablePromotions();
       if (isMountedRef.current) {
@@ -729,6 +766,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     upsertCart,
     invalidateAvailablePromotions,
     handlePromotionError,
+    resolveCartBranchId,
     t,
   ]);
 
@@ -762,6 +800,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       promotionsVersion,
       loadAvailablePromotions,
       invalidateAvailablePromotions,
+      promotionOrderType,
+      setPromotionOrderType,
       isPromotionsLoading,
       hasPromotionsError,
       applyPromotion,

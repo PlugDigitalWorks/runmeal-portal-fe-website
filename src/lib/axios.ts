@@ -1,6 +1,11 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import Cookies from 'js-cookie';
 
+const AUTH_BYPASS_PATHS = ['/auth/refresh', '/auth/login', '/auth/register', '/auth/verify-otp'];
+
+const isAuthBypassUrl = (url?: string) =>
+  !!url && AUTH_BYPASS_PATHS.some((path) => url.includes(path));
+
 const API_URL = 
   typeof window === 'undefined' 
     ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000') 
@@ -41,7 +46,7 @@ export const authApi = axios.create({
 api.interceptors.request.use(async (config) => {
   let token: string | undefined;
 
-  if (config.url?.includes('/auth/refresh') || config.url?.includes('/auth/login')) {
+  if (isAuthBypassUrl(config.url)) {
     return config;
   }
 
@@ -91,10 +96,7 @@ api.interceptors.response.use(
 
     if (error.response?.status === 401 && !originalRequest._retry) {
 
-      if (
-        originalRequest.url?.includes('/auth/login') ||
-        originalRequest.url?.includes('/auth/refresh')
-      ) {
+      if (isAuthBypassUrl(originalRequest.url)) {
         return Promise.reject(error);
       }
 

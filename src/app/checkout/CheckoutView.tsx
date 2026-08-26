@@ -6,32 +6,32 @@ import { useCart } from '@/context/CartContext';
 import { useBranch } from '@/context/BranchContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
-import { AlertCircle, Banknote, CheckCircle2, CreditCard, Edit2, Loader2, MapPin, MessageSquareText, Plus, Ticket, User as UserIcon, Wallet, X, type LucideIcon } from 'lucide-react';
+import { AlertCircle, Banknote, CalendarClock, CheckCircle2, CreditCard, Edit2, Loader2, MapPin, MessageSquareText, Plus, Store, Ticket, Truck, User as UserIcon, Wallet, X, type LucideIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { paymentService, type PaymentMethod } from '@/services/payment.service';
+import { paymentService, type OrderType, type PaymentMethod } from '@/services/payment.service';
 import { userService } from '@/services/user.service';
 import { walletService, WalletBalance } from '@/services/wallet.service';
 import { branchService } from '@/services/branch.service';
-import { AxiosError } from 'axios';
 import { AddressForm, AddressFormValues } from '@/components/address/AddressForm';
 import { CartPromotions } from '@/components/cart/CartPromotions';
+import { FulfillmentSlotPicker } from '@/components/checkout/FulfillmentSlotPicker';
 import type { Address } from '@/types/address';
-import type { Branch } from '@/types/branch';
+import type { Branch, ScheduledOrderType } from '@/types/branch';
 import { cartService } from '@/services/cart.service';
 import { getCartId, type Cart, type CartItem, type CartLoyaltyWallet } from '@/types/cart';
 import { formatCurrencyAmount, resolveCurrencySymbol } from '@/lib/currency';
 import { sanitizePositiveNumber } from '@/lib/utils';
-import { isLoyaltyError, resolveLoyaltyErrorMessage } from '@/lib/loyalty-errors';
+import {
+    getApiErrorCode,
+    isLoyaltyError,
+    isProductRewardCheckoutError,
+    resolveLoyaltyErrorMessage,
+} from '@/lib/loyalty-errors';
+import { resolveApiErrorMessage } from '@/lib/api-errors';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-
-type ApiErrorBody = {
-    message?: string | string[];
-    statusCode?: number;
-    error?: string;
-};
 
 const PAYMENT_METHOD_OPTIONS: Array<{
     value: PaymentMethod;
@@ -58,6 +58,27 @@ const PAYMENT_METHOD_OPTIONS: Array<{
         Icon: CreditCard,
     },
 ];
+
+const ORDER_TYPE_OPTIONS: Array<{
+    value: OrderType;
+    labelKey: string;
+    /** Which `order_type_settings` flag turns this option on. */
+    settingKey: 'delivery' | 'pickup' | 'scheduledDelivery' | 'scheduledPickup';
+    /** Assumed when the branch payload predates `order_type_settings`. */
+    defaultActive: boolean;
+    Icon: LucideIcon;
+}> = [
+    { value: 'DELIVERY', labelKey: 'checkout.orderTypes.delivery', settingKey: 'delivery', defaultActive: true, Icon: Truck },
+    { value: 'PICKUP', labelKey: 'checkout.orderTypes.pickup', settingKey: 'pickup', defaultActive: false, Icon: Store },
+    { value: 'SCHEDULED_DELIVERY', labelKey: 'checkout.orderTypes.scheduledDelivery', settingKey: 'scheduledDelivery', defaultActive: false, Icon: CalendarClock },
+    { value: 'SCHEDULED_PICKUP', labelKey: 'checkout.orderTypes.scheduledPickup', settingKey: 'scheduledPickup', defaultActive: false, Icon: CalendarClock },
+];
+
+const isPickupOrderType = (orderType: OrderType) =>
+    orderType === 'PICKUP' || orderType === 'SCHEDULED_PICKUP';
+
+const isScheduledOrderType = (orderType: OrderType) =>
+    orderType === 'SCHEDULED_DELIVERY' || orderType === 'SCHEDULED_PICKUP';
 
 type CartWithBranchVariants = Cart & {
     branch?: { id?: string | null } | null;
@@ -133,21 +154,23 @@ const getCartItemDetailLines = (item: CartItem) => {
     return [...optionLines, ...addonLines, ...noteLine];
 };
 
-const getApiErrorMessage = (error: unknown, t: TFunction) => {
-    const axiosError = error as AxiosError<ApiErrorBody>;
-    const message = axiosError.response?.data?.message;
-
-    if (Array.isArray(message)) {
-        return message.join(' ');
-    }
-
-    return message || t('checkout.toast.failedOrder');
-};
-
 const messageIncludesPhone = (lowerMessage: string) =>
     lowerMessage.includes('phone') || lowerMessage.includes('telefon');
 
-const getCheckoutErrorHelp = (message: string, t: TFunction) => {
+/** The extra line under an API failure, keyed by the error code it came with. */
+const CHECKOUT_ERROR_HELP_BY_CODE: Record<string, string> = {
+    PAYMENT_PHONE_REQUIRED: 'checkout.errorHelp.phone',
+    PAYMENT_ADDRESS_OUT_OF_DELIVERY_RANGE: 'checkout.errorHelp.currentAddress',
+    PAYMENT_ADDRESS_REQUIRED: 'checkout.errorHelp.served',
+    USER_ACTIVE_ADDRESS_LOCATION_MISSING: 'checkout.errorHelp.served',
+};
+
+const getCheckoutErrorHelp = (code: string | null, message: string, t: TFunction) => {
+    const helpKey = code ? CHECKOUT_ERROR_HELP_BY_CODE[code] : undefined;
+    if (helpKey) return t(helpKey);
+
+    // Pre-flight failures we raise ourselves carry no API code, so those keep
+    // being recognised by their own copy.
     const lowerMessage = message.toLowerCase();
 
     if (messageIncludesPhone(lowerMessage)) {
@@ -176,6 +199,7 @@ export default function CheckoutView() {
         closeCart,
         refreshSingleCart,
         invalidateAvailablePromotions,
+        setPromotionOrderType,
     } = useCart();
     const { selectedBranch } = useBranch();
     const searchParams = useSearchParams();
@@ -183,11 +207,31 @@ export default function CheckoutView() {
 
     const [selectedAddressId, setSelectedAddressId] = useState<string>('');
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>('ONLINE_CARD');
+    const [orderType, setOrderType] = useState<OrderType>('DELIVERY');
+    const [scheduledFor, setScheduledFor] = useState<string | null>(null);
+    const [slotRefreshKey, setSlotRefreshKey] = useState(0);
+    const [slotStatus, setSlotStatus] = useState({ isLoading: false, hasSlots: false });
+    /**
+     * The provider's 3DS form, rendered in place. It replaces the checkout view
+     * rather than the whole document — `document.write` would tear down React
+     * and leave no way back from a failed payment.
+     */
+    const [checkoutFormHtml, setCheckoutFormHtml] = useState<string | null>(null);
+    /** Branch that owns this cart, for its order type and payment settings. */
+    const [branchSettings, setBranchSettings] = useState<Branch | null>(null);
     const [orderNote, setOrderNote] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [isAddingAddress, setIsAddingAddress] = useState(false);
     const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
     const [deliveryError, setDeliveryError] = useState<string | null>(null);
+    /** The API code behind `deliveryError`, when it came from a request. */
+    const [deliveryErrorCode, setDeliveryErrorCode] = useState<string | null>(null);
+
+    /** Single entry point for the inline delivery error, so its code never goes stale. */
+    const showDeliveryError = (message: string | null, code: string | null = null) => {
+        setDeliveryError(message);
+        setDeliveryErrorCode(message ? code : null);
+    };
     const [deliverableAddressIds, setDeliverableAddressIds] = useState<Set<string>>(new Set());
     const [isCheckingAddresses, setIsCheckingAddresses] = useState(false);
 
@@ -212,11 +256,91 @@ export default function CheckoutView() {
         [addresses, deliverableAddressIds],
     );
 
+    // Only the fulfillment types this branch actually offers. A branch payload
+    // without `order_type_settings` predates the feature and offers delivery only.
+    const orderTypeSettings = branchSettings?.order_type_settings;
+    const orderTypeOptions = useMemo(
+        () => ORDER_TYPE_OPTIONS.filter(
+            (option) => orderTypeSettings?.[option.settingKey]?.isActive ?? option.defaultActive,
+        ),
+        [orderTypeSettings],
+    );
+    const isPickup = isPickupOrderType(orderType);
+    const isScheduled = isScheduledOrderType(orderType);
+
+    // A branch that takes no card payments still shows cash; one with no
+    // settings at all is assumed to be online-card only, as the backend is.
+    const paymentSettings = branchSettings?.payment_settings;
+    const paymentMethodOptions = useMemo(() => {
+        const isActive: Record<PaymentMethod, boolean> = {
+            ONLINE_CARD: paymentSettings ? (paymentSettings.onlineMethods?.card?.isActive ?? false) : true,
+            CASH: paymentSettings?.offlineMethods?.cash?.isActive ?? false,
+            CARD_ON_DELIVERY: paymentSettings?.offlineMethods?.cardOnDelivery?.isActive ?? false,
+        };
+
+        return PAYMENT_METHOD_OPTIONS
+            .filter((option) => isActive[option.value])
+            // A scheduled pickup is paid up front; the backend rejects anything else.
+            .filter((option) => orderType !== 'SCHEDULED_PICKUP' || option.value === 'ONLINE_CARD');
+    }, [paymentSettings, orderType]);
+
+    /** A scheduled order cannot be placed until a slot the backend issued is picked. */
+    const isScheduleReady = !isScheduled || (!slotStatus.isLoading && slotStatus.hasSlots && Boolean(scheduledFor));
+
     useEffect(() => {
         if (isCartOpen) {
             closeCart();
         }
     }, [isCartOpen, closeCart]);
+
+    // The cart's branch, not the browsed one: the portal lets a customer hold a
+    // cart at one branch while looking at another.
+    useEffect(() => {
+        if (!targetBranchId) {
+            setBranchSettings(null);
+            return;
+        }
+
+        let isCurrent = true;
+        branchService.getBranchDetails(targetBranchId)
+            .then((branch) => {
+                if (isCurrent) setBranchSettings(branch);
+            })
+            .catch((error) => {
+                // Without settings the view falls back to delivery + online card,
+                // which the backend accepts everywhere.
+                console.error('Failed to fetch branch settings', error);
+                if (isCurrent) setBranchSettings(null);
+            });
+
+        return () => {
+            isCurrent = false;
+        };
+    }, [targetBranchId]);
+
+    // Keep the selection inside what the branch offers, both times settings load.
+    useEffect(() => {
+        if (orderTypeOptions.length === 0) return;
+        if (orderTypeOptions.some((option) => option.value === orderType)) return;
+        setOrderType(orderTypeOptions[0].value);
+    }, [orderType, orderTypeOptions]);
+
+    useEffect(() => {
+        if (paymentMethodOptions.length === 0) return;
+        if (paymentMethodOptions.some((option) => option.value === selectedPaymentMethod)) return;
+        setSelectedPaymentMethod(paymentMethodOptions[0].value);
+    }, [paymentMethodOptions, selectedPaymentMethod]);
+
+    // A slot only belongs to the order type it was issued for.
+    useEffect(() => {
+        if (!isScheduled) setScheduledFor(null);
+    }, [isScheduled]);
+
+    // The same campaign can be valid on delivery and not on pickup, so the
+    // promotion lists are resolved for whatever is selected here.
+    useEffect(() => {
+        setPromotionOrderType(orderType);
+    }, [orderType, setPromotionOrderType]);
 
     useEffect(() => {
         let isCurrent = true;
@@ -291,7 +415,7 @@ export default function CheckoutView() {
 
     useEffect(() => {
         if (deliveryError) {
-            setDeliveryError(null);
+            showDeliveryError(null);
         }
     }, [selectedAddressId, deliveryError]);
 
@@ -332,6 +456,30 @@ export default function CheckoutView() {
         return <div className="p-8 text-center">{t('checkout.loginRequired')}</div>;
     }
 
+    /**
+     * The provider's own 3DS form, mounted in place of the checkout. It carries
+     * its own auto-submitting script, so it replaces the view rather than
+     * sitting inside it — but React stays mounted, which is what makes coming
+     * back from a failed payment possible.
+     */
+    if (checkoutFormHtml) {
+        return (
+            <div className="min-h-screen bg-zinc-50 py-8">
+                <div className="container mx-auto max-w-2xl px-4">
+                    <Card className="border-zinc-200 shadow-sm">
+                        <CardContent className="p-6">
+                            <div className="mb-4 flex items-center gap-2 text-sm text-zinc-500">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                {t('checkout.redirectingToPayment')}
+                            </div>
+                            <div dangerouslySetInnerHTML={{ __html: checkoutFormHtml }} />
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        );
+    }
+
     if (!selectedCart || !selectedCart.items || selectedCart.items.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
@@ -347,8 +495,9 @@ export default function CheckoutView() {
     const selectedAddress = deliverableAddresses.find(a => a.id === selectedAddressId);
     const selectedAddressHasPhone = Boolean(selectedAddress?.phoneE164?.trim());
     const editingAddress = editingAddressId ? addresses.find(a => a.id === editingAddressId) : undefined;
-    const deliveryErrorHelp = deliveryError ? getCheckoutErrorHelp(deliveryError, t) : null;
-    const deliveryErrorTitle = deliveryError && messageIncludesPhone(deliveryError.toLowerCase())
+    const deliveryErrorHelp = deliveryError ? getCheckoutErrorHelp(deliveryErrorCode, deliveryError, t) : null;
+    const deliveryErrorTitle = deliveryError
+        && (deliveryErrorCode === 'PAYMENT_PHONE_REQUIRED' || messageIncludesPhone(deliveryError.toLowerCase()))
         ? t('checkout.errorTitle.phone')
         : t('checkout.errorTitle.generic');
     const branchUnavailableMessage = t('checkout.toast.branchUnavailable');
@@ -409,7 +558,7 @@ export default function CheckoutView() {
             return;
         }
 
-        setDeliveryError(null);
+        showDeliveryError(null);
 
         try {
             setIsProcessing(true);
@@ -419,44 +568,61 @@ export default function CheckoutView() {
                 return;
             }
 
-            if (isCheckingAddresses) {
-                const msg = t('checkout.toast.checkingAvailability');
-                setDeliveryError(msg);
+            if (isScheduled && !isScheduleReady) {
+                const msg = t('checkout.toast.selectSlot');
+                showDeliveryError(msg);
                 toast.error(msg);
                 return;
             }
 
-            if (!selectedAddress) {
-                const msg = t('checkout.toast.selectServedAddress');
-                setDeliveryError(msg);
-                toast.error(msg);
-                return;
+            // A pickup order is collected at the branch, so it needs no address
+            // and no delivery coverage check.
+            if (!isPickup) {
+                if (isCheckingAddresses) {
+                    const msg = t('checkout.toast.checkingAvailability');
+                    showDeliveryError(msg);
+                    toast.error(msg);
+                    return;
+                }
+
+                if (!selectedAddress) {
+                    const msg = t('checkout.toast.selectServedAddress');
+                    showDeliveryError(msg);
+                    toast.error(msg);
+                    return;
+                }
+
+                if (!selectedAddress.phoneE164) {
+                    const msg = t('checkout.toast.phoneRequiredOrder');
+                    showDeliveryError(msg);
+                    toast.error(msg);
+                    return;
+                }
+
+                if (!selectedAddress.isActive) {
+                    // The backend clears the flag on every other address; a plain
+                    // update would leave two addresses marked active.
+                    await userService.setActiveAddress(selectedAddressId);
+                    await refreshAddresses();
+                }
             }
 
-            if (!selectedAddress.phoneE164) {
-                const msg = t('checkout.toast.phoneRequiredOrder');
-                setDeliveryError(msg);
-                toast.error(msg);
-                return;
-            }
-
-            if (!selectedAddress.isActive) {
-                await userService.updateAddress(selectedAddressId, { isActive: true });
-            }
-
-            const cartId = selectedCart.cartId || selectedCart.id || '';
-            const paymentResponse = await paymentService.initializePayment(
+            const cartId = getCartId(selectedCart);
+            const paymentResponse = await paymentService.initializePayment({
                 cartId,
-                selectedPaymentMethod,
-                'DELIVERY',
-                walletAppliedAmount > 0 ? walletAppliedAmount : undefined,
-                orderNote
-            );
+                branchId: targetBranchId || null,
+                paymentMethod: selectedPaymentMethod,
+                orderType,
+                ...(isScheduled && scheduledFor ? { scheduledFor } : {}),
+                creditUsedAmount: walletAppliedAmount > 0 ? walletAppliedAmount : undefined,
+                note: orderNote,
+            });
 
             if (paymentResponse.paymentUrl) {
                 window.location.href = paymentResponse.paymentUrl;
             } else if (paymentResponse.checkoutFormContent) {
-                document.write(paymentResponse.checkoutFormContent);
+                // Rendered in place — see `checkoutFormHtml`.
+                setCheckoutFormHtml(paymentResponse.checkoutFormContent);
             } else {
                 toast.success(t('checkout.toast.orderPlaced'));
                 router.push('/profile?tab=orders');
@@ -465,6 +631,28 @@ export default function CheckoutView() {
 
         } catch (error) {
             console.error('Order/Payment Error:', error);
+
+            const errorCode = getApiErrorCode(error) ?? null;
+
+            // The slot the customer picked went stale between load and checkout;
+            // reloading the picker is the only way forward.
+            if (errorCode === 'BRANCH_FULFILLMENT_SLOT_INVALID' || errorCode === 'BRANCH_FULFILLMENT_SLOT_UNAVAILABLE') {
+                setScheduledFor(null);
+                setSlotRefreshKey((key) => key + 1);
+                toast.error(t('checkout.toast.staleSlot'));
+                return;
+            }
+
+            // The reward's reservation expired or another order spent it first.
+            // The cart and the campaign list have to be refetched and the reward
+            // re-applied by hand — never retried silently.
+            if (isProductRewardCheckoutError(errorCode)) {
+                toast.error(resolveLoyaltyErrorMessage(error, t, 'cart.loyalty.toast.applyFailed'));
+                setNeedsTotalReconfirm(true);
+                await refreshSingleCart(selectedCartId);
+                invalidateAvailablePromotions();
+                return;
+            }
 
             // Checkout re-validates promotions; if they changed, resync and ask the
             // user to confirm the new total before we retry the payment.
@@ -476,8 +664,8 @@ export default function CheckoutView() {
                 return;
             }
 
-            const msg = getApiErrorMessage(error, t);
-            setDeliveryError(msg);
+            const msg = resolveApiErrorMessage(error, t('checkout.toast.failedOrder'));
+            showDeliveryError(msg, errorCode);
             toast.error(msg);
         } finally {
             setIsProcessing(false);
@@ -487,7 +675,7 @@ export default function CheckoutView() {
     const resolveNewAddressIsActive = async (data: AddressFormValues) => {
         const isServed = await isBranchServingLocation(targetBranchId, data.latitude, data.longitude);
         if (!isServed) {
-            setDeliveryError(branchUnavailableMessage);
+            showDeliveryError(branchUnavailableMessage);
         }
         return isServed;
     };
@@ -497,7 +685,7 @@ export default function CheckoutView() {
         setIsAddingAddress(false);
         if (address && !address.isActive) {
             setSelectedAddressId('');
-            setDeliveryError(branchUnavailableMessage);
+            showDeliveryError(branchUnavailableMessage);
             toast.error(branchUnavailableMessage);
             return;
         }
@@ -505,7 +693,7 @@ export default function CheckoutView() {
         if (address?.id) {
             setSelectedAddressId(address.id);
         }
-        setDeliveryError(null);
+        showDeliveryError(null);
     };
 
     const handleAddressEditSuccess = async () => {
@@ -516,7 +704,7 @@ export default function CheckoutView() {
             setSelectedAddressId(editedAddressId);
         }
         setEditingAddressId(null);
-        setDeliveryError(null);
+        showDeliveryError(null);
     };
 
     return (
@@ -527,7 +715,71 @@ export default function CheckoutView() {
                 <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]">
                     <div className="space-y-6">
 
+                        {/* Fulfillment — what the branch offers, and when */}
+                        {orderTypeOptions.length > 1 && (
+                            <Card className="border-zinc-200 shadow-sm">
+                                <CardHeader className="pb-3 border-b border-zinc-100">
+                                    <CardTitle className="flex items-center gap-2 text-lg">
+                                        <Truck className="text-orange-600 h-5 w-5" />
+                                        {t('checkout.orderType')}
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="pt-4 space-y-4">
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                        {orderTypeOptions.map(({ value, labelKey, Icon }) => {
+                                            const isSelected = orderType === value;
+
+                                            return (
+                                                <button
+                                                    key={value}
+                                                    type="button"
+                                                    onClick={() => setOrderType(value)}
+                                                    className={`flex items-center gap-3 rounded-lg border-2 p-4 text-left transition-colors ${isSelected
+                                                        ? 'border-orange-600 bg-orange-50/60 text-orange-700'
+                                                        : 'border-zinc-200 bg-white text-zinc-700 hover:border-orange-200 hover:bg-orange-50/40'
+                                                        }`}
+                                                >
+                                                    <Icon className={`h-5 w-5 shrink-0 ${isSelected ? 'text-orange-600' : 'text-zinc-500'}`} />
+                                                    <span className="text-sm font-semibold text-zinc-900">{t(labelKey)}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {isScheduled && targetBranchId && (
+                                        <div className="border-t border-zinc-100 pt-4">
+                                            <FulfillmentSlotPicker
+                                                branchId={targetBranchId}
+                                                orderType={orderType as ScheduledOrderType}
+                                                selectedValue={scheduledFor}
+                                                onChange={setScheduledFor}
+                                                onStatusChange={setSlotStatus}
+                                                refreshKey={slotRefreshKey}
+                                            />
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Pickup happens at the branch — no address to choose. */}
+                        {isPickup && branchSettings && (
+                            <Card className="border-zinc-200 shadow-sm">
+                                <CardHeader className="pb-3 border-b border-zinc-100">
+                                    <CardTitle className="flex items-center gap-2 text-lg">
+                                        <Store className="text-orange-600 h-5 w-5" />
+                                        {t('checkout.pickupBranch')}
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="pt-4">
+                                    <p className="font-medium text-zinc-900">{branchSettings.name}</p>
+                                    <p className="mt-1 text-sm text-zinc-500">{branchSettings.addressText}</p>
+                                </CardContent>
+                            </Card>
+                        )}
+
                         {/* Delivery Address */}
+                        {!isPickup && (
                         <Card className={`border-zinc-200 shadow-sm ${deliveryError ? 'border-red-300 ring-2 ring-red-100' : ''}`}>
                             <CardHeader className="pb-3 border-b border-zinc-100">
                                 <CardTitle className="flex items-center justify-between text-lg">
@@ -540,7 +792,7 @@ export default function CheckoutView() {
                                             variant="ghost"
                                             size="sm"
                                             className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-                                            onClick={() => { setIsAddingAddress(true); setDeliveryError(null); }}
+                                            onClick={() => { setIsAddingAddress(true); showDeliveryError(null); }}
                                         >
                                             <Plus className="h-4 w-4 mr-1" /> {t('checkout.addNew')}
                                         </Button>
@@ -605,7 +857,7 @@ export default function CheckoutView() {
                                                                     onClick={(event) => {
                                                                         event.stopPropagation();
                                                                         setEditingAddressId(addr.id);
-                                                                        setDeliveryError(null);
+                                                                        showDeliveryError(null);
                                                                     }}
                                                                 >
                                                                     <Edit2 className="h-4 w-4" />
@@ -634,6 +886,7 @@ export default function CheckoutView() {
                                 )}
                             </CardContent>
                         </Card>
+                        )}
 
                         {/* Personal Info */}
                         <Card className="border-zinc-200 shadow-sm">
@@ -672,8 +925,13 @@ export default function CheckoutView() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="pt-4">
+                                {paymentMethodOptions.length === 0 ? (
+                                    <p className="rounded-lg border border-dashed border-zinc-200 p-3 text-sm text-zinc-500">
+                                        {t('checkout.noPaymentMethod')}
+                                    </p>
+                                ) : (
                                 <div className="grid gap-3 sm:grid-cols-3">
-                                    {PAYMENT_METHOD_OPTIONS.map(({ value, labelKey, descriptionKey, Icon }) => {
+                                    {paymentMethodOptions.map(({ value, labelKey, descriptionKey, Icon }) => {
                                         const isSelected = selectedPaymentMethod === value;
 
                                         return (
@@ -698,6 +956,7 @@ export default function CheckoutView() {
                                         );
                                     })}
                                 </div>
+                                )}
                             </CardContent>
                         </Card>
 
@@ -736,6 +995,8 @@ export default function CheckoutView() {
                                         <CartPromotions
                                             cartId={selectedCartId}
                                             appliedPromotions={selectedCart.appliedPromotions}
+                                            cartItems={items}
+                                            menuHref={targetBranchId ? `/branches/${targetBranchId}` : '/'}
                                             allowCouponCode
                                         />
                                     </CardContent>
@@ -938,7 +1199,14 @@ export default function CheckoutView() {
                     <Button
                         size="lg"
                         className="w-full sm:w-auto min-w-[200px] bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl"
-                        disabled={!selectedAddress || !selectedAddressHasPhone || isCheckingAddresses || isProcessing || isAddingAddress || needsTotalReconfirm}
+                        disabled={
+                            // Pickup needs no address; a scheduled order needs a slot.
+                            (!isPickup && (!selectedAddress || !selectedAddressHasPhone || isCheckingAddresses || isAddingAddress))
+                            || !isScheduleReady
+                            || paymentMethodOptions.length === 0
+                            || isProcessing
+                            || needsTotalReconfirm
+                        }
                         onClick={handleCompleteOrder}
                     >
                         {isProcessing ? (

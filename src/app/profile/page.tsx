@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MapPin, Plus, Trash2, X, Edit2, ChevronDown } from 'lucide-react';
+import { CalendarClock, ChevronDown, Edit2, MapPin, Package, Plus, Store, Trash2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useUser } from '@/context/UserContext';
 import { Address } from '@/types/address';
@@ -11,11 +11,15 @@ import { userService } from '@/services/user.service';
 import { walletService } from '@/services/wallet.service';
 import { PendingSurveys } from '@/components/surveys/PendingSurveys';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { AddressForm } from '@/components/address/AddressForm';
+import { DiscountedLinePrice } from '@/components/ui/DiscountedLinePrice';
+import { OrderPromotionSnapshots } from '@/components/orders/OrderPromotionSnapshots';
+import { LoyaltyRewardsPanel } from '@/components/loyalty/LoyaltyRewardsPanel';
+import { getCurrencySymbol } from '@/lib/currency';
 import { Suspense } from 'react';
 import {
   formatCurrency,
-  formatOrderDate,
   formatOrderDateTime,
   getOrderDisplayId,
   getOrderItemDetailLines,
@@ -23,6 +27,14 @@ import {
   getOrderItemTotalPrice,
   getOrderItemUnitPrice,
 } from '@/lib/order-display';
+
+/** `order.orderType` as the backend sends it → the i18n key under `checkout.orderTypes`. */
+const ORDER_TYPE_LABEL_KEYS: Record<string, string> = {
+  DELIVERY: 'delivery',
+  PICKUP: 'pickup',
+  SCHEDULED_DELIVERY: 'scheduledDelivery',
+  SCHEDULED_PICKUP: 'scheduledPickup',
+};
 
 function ProfileContent() {
   const router = useRouter();
@@ -32,7 +44,7 @@ function ProfileContent() {
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [orders, setOrders] = useState<import('@/services/order.service').Order[]>([]);
-  const [activeTab, setActiveTab] = useState<'addresses' | 'orders' | 'surveys'>('addresses');
+  const [activeTab, setActiveTab] = useState<'addresses' | 'orders' | 'rewards' | 'surveys'>('addresses');
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [orderDetails, setOrderDetails] = useState<Record<string, import('@/services/order.service').OrderDetails>>({});
   const [loadingDetails, setLoadingDetails] = useState<Set<string>>(new Set());
@@ -56,7 +68,7 @@ function ProfileContent() {
 
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'orders' || tab === 'addresses' || tab === 'surveys') {
+    if (tab === 'orders' || tab === 'addresses' || tab === 'rewards' || tab === 'surveys') {
         setActiveTab(tab);
     }
   }, [searchParams]);
@@ -82,18 +94,32 @@ function ProfileContent() {
       await refreshAddresses();
       setIsAddingAddress(false);
       setEditingId(null);
+      toast.success(t('profile.addressSaved'));
   };
-   
+
   const onDeleteAddress = async (id: string) => {
-      if(!confirm('Are you sure you want to delete this address?')) return;
-       try {
-           await userService.deleteAddress(id);
-           await refreshAddresses();
-       } catch (error) {
+      if (!confirm(t('profile.confirmDeleteAddress'))) return;
+      try {
+          await userService.deleteAddress(id);
+          await refreshAddresses();
+          toast.success(t('profile.addressDeleted'));
+      } catch (error) {
           console.error('Failed to delete', error);
-          alert(t('profile.deleteFailed'));
+          toast.error(t('profile.deleteFailed'));
       }
-  }
+  };
+
+  /** Makes one address the account's active one; the backend clears the rest. */
+  const onSetActiveAddress = async (id: string) => {
+      try {
+          await userService.setActiveAddress(id);
+          await refreshAddresses();
+          toast.success(t('profile.addressActivated'));
+      } catch (error) {
+          console.error('Failed to set active address', error);
+          toast.error(t('profile.setActiveFailed'));
+      }
+  };
 
   const toggleOrder = async (orderId: string) => {
       const newExpanded = new Set(expandedOrders);
@@ -117,6 +143,7 @@ function ProfileContent() {
               setOrderDetails(prev => ({ ...prev, [orderId]: details }));
           } catch (error) {
               console.error('Failed to fetch order details', error);
+              toast.error(t('profile.failedLoadDetails'));
           } finally {
               setLoadingDetails(prev => {
                   const next = new Set(prev);
@@ -207,12 +234,20 @@ function ProfileContent() {
                     {t('profile.tabs.orders')}
                 </button>
                 <button
+                    onClick={() => setActiveTab('rewards')}
+                    className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'rewards' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-900'}`}
+                >
+                    {t('rewards.tab')}
+                </button>
+                <button
                     onClick={() => setActiveTab('surveys')}
                     className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'surveys' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-900'}`}
                 >
                     {t('survey.tab')}
                 </button>
             </div>
+
+            {activeTab === 'rewards' && <LoyaltyRewardsPanel />}
 
             {activeTab === 'surveys' && (
                 <div className="space-y-6">
@@ -232,7 +267,11 @@ function ProfileContent() {
                         </CardHeader>
                         <CardContent>
                             {orders.length === 0 ? (
-                                <p className="text-zinc-500 text-sm">{t('profile.noOrders')}</p>
+                                <div className="py-10 text-center">
+                                    <Package className="mx-auto mb-3 h-10 w-10 text-zinc-300" />
+                                    <h3 className="mb-1 text-lg font-medium text-zinc-900">{t('profile.noOrders')}</h3>
+                                    <p className="text-sm text-zinc-500">{t('profile.noOrdersDescription')}</p>
+                                </div>
                             ) : (
                                 <div className="space-y-4">
                                     {orders.map(order => (
@@ -245,10 +284,27 @@ function ProfileContent() {
                                                     <div className={`p-2 rounded-full bg-zinc-100 text-zinc-500 transition-transform duration-200 ${expandedOrders.has(order.id) ? 'rotate-180' : ''}`}>
                                                         <ChevronDown className="h-4 w-4" />
                                                     </div>
-                                                    <div> 
+                                                    <div>
                                                         <div className="font-medium text-zinc-900">
                                                             {formatOrderDateTime(order.createdAt)}
                                                         </div>
+                                                        {order.orderType && (
+                                                            <div className="mt-0.5 flex items-center gap-1 text-xs text-zinc-500">
+                                                                {order.orderType.includes('PICKUP')
+                                                                    ? <Store className="h-3 w-3 shrink-0" />
+                                                                    : <Package className="h-3 w-3 shrink-0" />}
+                                                                {t(`checkout.orderTypes.${ORDER_TYPE_LABEL_KEYS[order.orderType] ?? 'delivery'}`)}
+                                                            </div>
+                                                        )}
+                                                        {/* The slot the customer chose, not the moment they ordered. */}
+                                                        {(order.scheduledDate || order.scheduledFor) && (
+                                                            <div className="mt-0.5 flex items-center gap-1 text-xs text-orange-600">
+                                                                <CalendarClock className="h-3 w-3 shrink-0" />
+                                                                {order.scheduledDate
+                                                                    ? `${order.scheduledDate}${order.scheduledTime ? ` · ${order.scheduledTime}` : ''}`
+                                                                    : formatOrderDateTime(order.scheduledFor)}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 <div className="text-xs px-2 py-1 rounded-full bg-zinc-100 text-zinc-600 inline-block capitalize mt-1">
@@ -282,9 +338,14 @@ function ProfileContent() {
                                                                             </div>
                                                                         ))}
                                                                     </div>
-                                                                    <div className="shrink-0 text-zinc-900 font-medium">
-                                                                        {formatCurrency(getOrderItemTotalPrice(item))}
-                                                                    </div>
+                                                                    <DiscountedLinePrice
+                                                                        className="shrink-0 text-zinc-900 font-medium"
+                                                                        lineTotal={item.lineTotal}
+                                                                        discountAmount={item.discountAmount}
+                                                                        finalLineTotal={item.finalLineTotal}
+                                                                        fallbackTotal={getOrderItemTotalPrice(item)}
+                                                                        currencySymbol={getCurrencySymbol(orderDetails[order.id])}
+                                                                    />
                                                                 </div>
                                                             ))}
                                                             <div className="pt-2">
@@ -296,6 +357,10 @@ function ProfileContent() {
                                                                     {t('profile.viewOrderDetails')}
                                                                 </Button>
                                                             </div>
+                                                            <OrderPromotionSnapshots
+                                                                snapshot={orderDetails[order.id].internalPromotionSnapshot}
+                                                                currencySymbol={getCurrencySymbol(orderDetails[order.id])}
+                                                            />
                                                             <div className="border-t border-zinc-100 mt-2 pt-2 flex justify-between items-center">
                                                                 <span className="text-sm font-medium text-zinc-900">{t('profile.total')}</span>
                                                                 <span className="text-base font-bold text-orange-600">{formatCurrency(orderDetails[order.id].totalPrice)}</span>
@@ -345,7 +410,8 @@ function ProfileContent() {
                         {addresses.length === 0 && !isAddingAddress && (
                             <div className="text-center py-12 bg-zinc-50 rounded-xl border border-dashed border-zinc-200">
                                 <MapPin className="h-10 w-10 text-zinc-300 mx-auto mb-3" />
-                                <p className="text-zinc-500">{t('profile.noAddresses')}</p>
+                                <h3 className="text-lg font-medium text-zinc-900 mb-1">{t('profile.noAddresses')}</h3>
+                                <p className="text-zinc-500">{t('profile.noAddressesDescription')}</p>
                             </div>
                         )}
 
@@ -356,6 +422,11 @@ function ProfileContent() {
                                         <MapPin className="h-5 w-5" />
                                     </div>
                                     <div>
+                                        {addr.isActive && (
+                                            <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-semibold text-green-700">
+                                                {t('profile.activeAddress')}
+                                            </span>
+                                        )}
                                         <p className="text-sm text-zinc-600 mt-1 leading-relaxed">
                                             {addr.street} {addr.buildingNumber}/{addr.apartmentNumber}<br />
                                             {addr.postalCode} {addr.district}, {addr.province}<br/>
@@ -365,6 +436,16 @@ function ProfileContent() {
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
+                                     {!addr.isActive && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 px-2 text-xs text-zinc-500 hover:text-green-700 hover:bg-green-50"
+                                            onClick={() => onSetActiveAddress(addr.id)}
+                                        >
+                                            {t('profile.setActive')}
+                                        </Button>
+                                     )}
                                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-zinc-500 hover:text-orange-600 hover:bg-orange-50" onClick={() => onEditClick(addr)}>
                                         <Edit2 className="h-4 w-4" />
                                     </Button>

@@ -63,11 +63,15 @@ describe('cartService promotions', () => {
       promotionCode: 'fnftNQHm1VH42bjNlOZ2',
     });
 
-    expect(mockedApi.post).toHaveBeenCalledWith('/carts/cart-1/promotions/apply', {
-      type: 'REKONECT',
-      promotionCode: 'fnftNQHm1VH42bjNlOZ2',
-      orderType: 'DELIVERY',
-    });
+    expect(mockedApi.post).toHaveBeenCalledWith(
+      '/carts/cart-1/promotions/apply',
+      {
+        type: 'REKONECT',
+        promotionCode: 'fnftNQHm1VH42bjNlOZ2',
+        orderType: 'DELIVERY',
+      },
+      {},
+    );
     expect(cart.finalPrice).toBe(181);
     expect(cart.appliedPromotions).toHaveLength(1);
   });
@@ -80,11 +84,15 @@ describe('cartService promotions', () => {
       promotionCode: 'WELCOME10',
     });
 
-    expect(mockedApi.post).toHaveBeenCalledWith('/carts/cart-1/promotions/apply', {
-      type: 'INTERNAL',
-      promotionCode: 'WELCOME10',
-      orderType: 'DELIVERY',
-    });
+    expect(mockedApi.post).toHaveBeenCalledWith(
+      '/carts/cart-1/promotions/apply',
+      {
+        type: 'INTERNAL',
+        promotionCode: 'WELCOME10',
+        orderType: 'DELIVERY',
+      },
+      {},
+    );
   });
 
   it('removes a single promotion by its code', async () => {
@@ -95,10 +103,14 @@ describe('cartService promotions', () => {
       promotionCode: 'asset-9',
     });
 
-    expect(mockedApi.post).toHaveBeenCalledWith('/carts/cart-1/promotions/remove', {
-      type: 'REKONECT',
-      promotionCode: 'asset-9',
-    });
+    expect(mockedApi.post).toHaveBeenCalledWith(
+      '/carts/cart-1/promotions/remove',
+      {
+        type: 'REKONECT',
+        promotionCode: 'asset-9',
+      },
+      {},
+    );
   });
 
   it('removes every promotion of a provider when no code is given', async () => {
@@ -106,9 +118,13 @@ describe('cartService promotions', () => {
 
     await cartService.removePromotion('cart-1', { type: LoyaltyProviderType.REKONECT });
 
-    expect(mockedApi.post).toHaveBeenCalledWith('/carts/cart-1/promotions/remove', {
-      type: 'REKONECT',
-    });
+    expect(mockedApi.post).toHaveBeenCalledWith(
+      '/carts/cart-1/promotions/remove',
+      {
+        type: 'REKONECT',
+      },
+      {},
+    );
   });
 });
 
@@ -129,7 +145,7 @@ describe('cartService loyalty wallet', () => {
     mockedApi.get.mockResolvedValue({ data: wallet });
 
     await expect(cartService.getLoyaltyWallet('cart-1')).resolves.toEqual(wallet);
-    expect(mockedApi.get).toHaveBeenCalledWith('/carts/cart-1/loyalty/wallet');
+    expect(mockedApi.get).toHaveBeenCalledWith('/carts/cart-1/loyalty/wallet', {});
   });
 
   it('also accepts the standard { data } envelope', async () => {

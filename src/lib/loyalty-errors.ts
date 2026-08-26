@@ -14,6 +14,9 @@ export const LOYALTY_ERROR_CODES = [
   'LOYALTY_PROMOTION_NOT_FOUND_ON_CART',
   'LOYALTY_PROMOTION_NO_LONGER_APPLICABLE',
   'LOYALTY_EXTERNAL_PROVIDER_NOT_ACTIVE',
+  'LOYALTY_PRODUCT_REWARD_RESERVATION_MISSING',
+  'LOYALTY_PRODUCT_REWARD_UNAVAILABLE',
+  'LOYALTY_PRODUCT_REWARD_ITEM_REQUIRED',
 ] as const;
 
 export type LoyaltyErrorCode = (typeof LOYALTY_ERROR_CODES)[number];
@@ -22,6 +25,33 @@ export type LoyaltyErrorCode = (typeof LOYALTY_ERROR_CODES)[number];
 export const CART_STALE_LOYALTY_CODES: readonly LoyaltyErrorCode[] = [
   'LOYALTY_PROMOTION_NO_LONGER_APPLICABLE',
 ];
+
+/**
+ * The line the customer picked for a product reward is missing, belongs to
+ * another cart, or fell out of the campaign's scope. The eligible lines have to
+ * be rebuilt from a fresh cart and the customer asked to choose again.
+ */
+export const PRODUCT_REWARD_ITEM_REQUIRED_ERROR = 'LOYALTY_PRODUCT_REWARD_ITEM_REQUIRED';
+
+/**
+ * The product reward the customer checked out with is gone: its reservation
+ * expired, or another order spent it first. Payment must never be retried on
+ * these — the cart and the campaign list have to be refetched and the reward
+ * applied again by hand.
+ */
+export const PRODUCT_REWARD_CHECKOUT_CODES: readonly LoyaltyErrorCode[] = [
+  'LOYALTY_PRODUCT_REWARD_RESERVATION_MISSING',
+  'LOYALTY_PRODUCT_REWARD_UNAVAILABLE',
+  // Checkout revalidates the stored selection: the line can be gone or out of
+  // the campaign's scope by then, and the reward has to be picked again.
+  PRODUCT_REWARD_ITEM_REQUIRED_ERROR,
+];
+
+export const isRewardItemSelectionError = (code: string | null | undefined) =>
+  code === PRODUCT_REWARD_ITEM_REQUIRED_ERROR;
+
+export const isProductRewardCheckoutError = (code: string | null | undefined) =>
+  isLoyaltyErrorCode(code ?? undefined) && PRODUCT_REWARD_CHECKOUT_CODES.includes(code as LoyaltyErrorCode);
 
 type LoyaltyErrorBody = {
   message?: string | string[];

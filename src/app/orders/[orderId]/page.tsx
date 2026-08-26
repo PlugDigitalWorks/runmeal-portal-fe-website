@@ -3,13 +3,17 @@
 import Image from 'next/image';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, CreditCard, MapPin, Package, ReceiptText } from 'lucide-react';
+import { ArrowLeft, CalendarClock, CreditCard, MapPin, Package, ReceiptText, Store, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { branchService } from '@/services/branch.service';
 import { Order, OrderDetails } from '@/services/order.service';
 import { RUNMEAL_LOGO } from '@/lib/constants';
 import { Branch } from '@/types/branch';
+import { DiscountedLinePrice } from '@/components/ui/DiscountedLinePrice';
+import { OrderPromotionSnapshots } from '@/components/orders/OrderPromotionSnapshots';
+import { ReceiptAccountPanel } from '@/components/orders/ReceiptAccountPanel';
+import { getCurrencySymbol } from '@/lib/currency';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
@@ -31,6 +35,25 @@ function formatPaymentMethod(value: string | null | undefined) {
     .split('_')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
+}
+
+/** `order.orderType` as the backend sends it → the i18n key under `checkout.orderTypes`. */
+const ORDER_TYPE_LABEL_KEYS: Record<string, string> = {
+  DELIVERY: 'delivery',
+  PICKUP: 'pickup',
+  SCHEDULED_DELIVERY: 'scheduledDelivery',
+  SCHEDULED_PICKUP: 'scheduledPickup',
+};
+
+const isPickupOrder = (order: Pick<OrderDetails, 'orderType'>) =>
+  !!order.orderType && order.orderType.includes('PICKUP');
+
+/** The slot the customer chose, not the moment they ordered. */
+function getScheduledLabel(order: OrderDetails) {
+  if (order.scheduledDate) {
+    return order.scheduledTime ? `${order.scheduledDate} · ${order.scheduledTime}` : order.scheduledDate;
+  }
+  return order.scheduledFor ? formatOrderDateTime(order.scheduledFor) : null;
 }
 
 function getOrderTimeLabel(order: OrderDetails, t: TFunction) {
@@ -107,6 +130,8 @@ export default function OrderDetailPage() {
   const deliveryFee = toNumber(order?.deliveryFee);
   const discountAmount = toNumber(order?.discountAmount);
   const taxAmount = toNumber(order?.taxAmount);
+  const currencySymbol = getCurrencySymbol(order);
+  const creditUsed = toNumber(order?.creditUsedAmount);
   const branchName = branch?.name || order?.branchName || 'Branch';
   const branchAddress = branch?.addressText || order?.branchAddressText || '-';
   const logoUrl = branch?.logoUrl || order?.branchLogoUrl || RUNMEAL_LOGO;
@@ -169,6 +194,30 @@ export default function OrderDetailPage() {
                   </div>
 
                   <div className="mt-6 space-y-4">
+                    {order.orderType ? (
+                      <div className="flex gap-3">
+                        {isPickupOrder(order)
+                          ? <Store className="mt-0.5 h-5 w-5 shrink-0 text-zinc-500" />
+                          : <Package className="mt-0.5 h-5 w-5 shrink-0 text-zinc-500" />}
+                        <div>
+                          <p className="text-sm text-zinc-500">{t('orders.orderType')}</p>
+                          <p className="font-medium text-zinc-950">
+                            {t(`checkout.orderTypes.${ORDER_TYPE_LABEL_KEYS[order.orderType] ?? 'delivery'}`)}
+                          </p>
+                        </div>
+                      </div>
+                    ) : null}
+                    {getScheduledLabel(order) ? (
+                      <div className="flex gap-3">
+                        <CalendarClock className="mt-0.5 h-5 w-5 shrink-0 text-orange-600" />
+                        <div>
+                          <p className="text-sm text-zinc-500">
+                            {isPickupOrder(order) ? t('orders.scheduledPickup') : t('orders.scheduledDelivery')}
+                          </p>
+                          <p className="font-medium text-zinc-950">{getScheduledLabel(order)}</p>
+                        </div>
+                      </div>
+                    ) : null}
                     <div className="flex gap-3">
                       <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-zinc-500" />
                       <div>
@@ -177,14 +226,16 @@ export default function OrderDetailPage() {
                         <p className="text-sm text-zinc-600">{branchAddress}</p>
                       </div>
                     </div>
-                    <div className="flex gap-3">
-                      <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-zinc-500" />
-                      <div>
-                        <p className="text-sm text-zinc-500">{t('orders.deliveredTo')}</p>
-                        <p className="font-medium text-zinc-950">{order.addressText || '-'}</p>
-                        {order.phone ? <p className="text-sm text-zinc-600">{order.phone}</p> : null}
+                    {!isPickupOrder(order) ? (
+                      <div className="flex gap-3">
+                        <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-zinc-500" />
+                        <div>
+                          <p className="text-sm text-zinc-500">{t('orders.deliveredTo')}</p>
+                          <p className="font-medium text-zinc-950">{order.addressText || '-'}</p>
+                          {order.phone ? <p className="text-sm text-zinc-600">{order.phone}</p> : null}
+                        </div>
                       </div>
-                    </div>
+                    ) : null}
                     {order.note ? (
                       <div className="flex gap-3">
                         <ReceiptText className="mt-0.5 h-5 w-5 shrink-0 text-zinc-500" />
@@ -221,12 +272,17 @@ export default function OrderDetailPage() {
                             {getOrderItemQty(item)}x {item.productName}
                           </p>
                           <p className="text-xs text-zinc-500">
-                            {t('orders.unit')}: {formatCurrency(getOrderItemUnitPrice(item))}
+                            {t('orders.unit')}: {formatCurrency(getOrderItemUnitPrice(item), currencySymbol)}
                           </p>
                         </div>
-                        <p className="shrink-0 font-semibold text-zinc-950">
-                          {formatCurrency(getOrderItemTotalPrice(item))}
-                        </p>
+                        <DiscountedLinePrice
+                          className="shrink-0 font-semibold text-zinc-950"
+                          lineTotal={item.lineTotal}
+                          discountAmount={item.discountAmount}
+                          finalLineTotal={item.finalLineTotal}
+                          fallbackTotal={getOrderItemTotalPrice(item)}
+                          currencySymbol={currencySymbol}
+                        />
                       </div>
                       {getOrderItemDetailLines(item).map((line) => (
                         <p key={line} className="mt-1 text-sm leading-relaxed text-zinc-600">
@@ -241,22 +297,31 @@ export default function OrderDetailPage() {
               <div className="space-y-3 border-t border-zinc-200 pt-5">
                 <div className="flex justify-between text-zinc-700">
                   <span>{t('orders.subtotal')}</span>
-                  <span>{formatCurrency(subtotal)}</span>
+                  <span>{formatCurrency(subtotal, currencySymbol)}</span>
                 </div>
                 <div className="flex justify-between text-zinc-700">
                   <span>{t('orders.deliveryFee')}</span>
-                  <span>{deliveryFee > 0 ? formatCurrency(deliveryFee) : t('orders.free')}</span>
+                  <span>{deliveryFee > 0 ? formatCurrency(deliveryFee, currencySymbol) : t('orders.free')}</span>
                 </div>
                 {discountAmount > 0 ? (
                   <div className="flex justify-between text-emerald-600">
                     <span>{t('orders.discount')}</span>
-                    <span>-{formatCurrency(discountAmount)}</span>
+                    <span>-{formatCurrency(discountAmount, currencySymbol)}</span>
                   </div>
                 ) : null}
                 {taxAmount > 0 ? (
                   <div className="flex justify-between text-zinc-700">
                     <span>{t('orders.taxIncluded')}</span>
-                    <span>{formatCurrency(taxAmount)}</span>
+                    <span>{formatCurrency(taxAmount, currencySymbol)}</span>
+                  </div>
+                ) : null}
+                {creditUsed > 0 ? (
+                  <div className="flex justify-between text-orange-600">
+                    <span className="flex items-center gap-1.5">
+                      <Wallet className="h-4 w-4" />
+                      {t('orders.creditUsed')}
+                    </span>
+                    <span>-{formatCurrency(creditUsed, currencySymbol)}</span>
                   </div>
                 ) : null}
                 {order.couponCode ? (
@@ -265,9 +330,13 @@ export default function OrderDetailPage() {
                     <span>{order.couponCode}</span>
                   </div>
                 ) : null}
+                <OrderPromotionSnapshots
+                  snapshot={order.internalPromotionSnapshot}
+                  currencySymbol={currencySymbol}
+                />
                 <div className="flex justify-between border-t border-zinc-200 pt-3 text-lg font-bold text-zinc-950">
                   <span>{t('orders.total')}</span>
-                  <span className="text-orange-600">{formatCurrency(order.totalPrice)}</span>
+                  <span className="text-orange-600">{formatCurrency(order.totalPrice, currencySymbol)}</span>
                 </div>
               </div>
 
@@ -285,6 +354,8 @@ export default function OrderDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          <ReceiptAccountPanel orderId={order.id} />
         </div>
       </div>
     </div>

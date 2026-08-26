@@ -135,3 +135,82 @@
     cursor: not-allowed;
   }
 }
+
+@utility scrollbar-hide {
+  /* IE and Edge */
+  -ms-overflow-style: none;
+  /* Firefox */
+  scrollbar-width: none;
+
+  /* Safari and Chrome */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+/* ---------------------------------------------------------------------------
+   Loyalty gift reveal
+   Used by GiftRevealOverlay / LoyaltyStampCard. Kept here rather than inline so
+   the lid, box and confetti stay on one timeline.
+   --------------------------------------------------------------------------- */
+
+@keyframes gift-box-shake {
+  0%, 55% { transform: rotate(0deg) scale(1); }
+  60% { transform: rotate(-7deg) scale(1.02); }
+  66% { transform: rotate(7deg) scale(1.03); }
+  72% { transform: rotate(-6deg) scale(1.04); }
+  78% { transform: rotate(6deg) scale(1.05); }
+  84% { transform: rotate(-3deg) scale(1.06); }
+  90% { transform: rotate(3deg) scale(1.05); }
+  100% { transform: rotate(0deg) scale(1.04); }
+}
+
+@keyframes gift-lid-pop {
+  0%, 84% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  92% { transform: translateY(-120%) rotate(-14deg); opacity: 1; }
+  100% { transform: translateY(-220%) rotate(-26deg); opacity: 0; }
+}
+
+@keyframes gift-burst {
+  0%, 84% { transform: scale(0.2); opacity: 0; }
+  90% { opacity: 1; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+
+@keyframes gift-confetti {
+  0%, 84% { transform: translate3d(0, 0, 0) scale(0.4) rotate(0deg); opacity: 0; }
+  88% { opacity: 1; }
+  100% {
+    transform: translate3d(var(--confetti-x, 0), var(--confetti-y, -140px)) scale(1) rotate(var(--confetti-r, 220deg));
+    opacity: 0;
+  }
+}
+
+@keyframes gift-reward-in {
+  0%, 88% { transform: translateY(14px) scale(0.9); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes stamp-pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  70% { transform: scale(1.14); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.gift-box { animation: gift-box-shake 2s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards; }
+.gift-lid { animation: gift-lid-pop 2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+.gift-burst { animation: gift-burst 2s ease-out forwards; }
+.gift-confetti { animation: gift-confetti 2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.gift-reward { animation: gift-reward-in 2.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+.stamp-pop { animation: stamp-pop 380ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .gift-box,
+  .gift-lid,
+  .gift-burst,
+  .gift-confetti,
+  .gift-reward,
+  .stamp-pop {
+    animation-duration: 1ms;
+    animation-iteration-count: 1;
+  }
+}

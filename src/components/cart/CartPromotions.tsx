@@ -6,10 +6,19 @@ import { Gift, RefreshCw, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/button';
+import { ProductRewardProgress } from '@/components/cart/ProductRewardProgress';
+import { RewardItemPicker } from '@/components/cart/RewardItemPicker';
 import { useCart } from '@/context/CartContext';
 import { DEFAULT_PRODUCT_IMAGE } from '@/lib/constants';
 import { resolveUnapplicableReason } from '@/lib/loyalty-errors';
 import {
+  getProductReward,
+  requiresRewardSelection,
+  resolveEligibleRewardItems,
+  resolveProductRewardProgress,
+} from '@/lib/loyalty-rewards';
+import {
+  CartItem,
   CartPromotion,
   LoyaltyProviderType,
   promotionKey,
@@ -22,6 +31,10 @@ interface CartPromotionsProps {
   appliedPromotions?: CartPromotion[];
   /** Renders the manual coupon-code field for codes the list does not carry yet. */
   allowCouponCode?: boolean;
+  /** Live cart lines — a product reward is spent on one of them. */
+  cartItems?: CartItem[];
+  /** Branch menu route, for the "add an eligible item" link on a reward row. */
+  menuHref?: string;
   className?: string;
 }
 
@@ -37,6 +50,8 @@ export function CartPromotions({
   cartId,
   appliedPromotions,
   allowCouponCode = false,
+  cartItems,
+  menuHref = '/',
   className,
 }: CartPromotionsProps) {
   const { t } = useTranslation();
@@ -64,6 +79,11 @@ export function CartPromotions({
 
   const appliedKeys = useMemo(() => new Set(applied.map(promotionKey)), [applied]);
 
+  const availableByKey = useMemo(
+    () => new Map((availablePromotionsByCart[cartId] || []).map((promotion) => [promotionKey(promotion), promotion])),
+    [availablePromotionsByCart, cartId],
+  );
+
   const rows = useMemo<CartPromotion[]>(() => {
     const candidates = (availablePromotionsByCart[cartId] || []).filter(
       (promotion) => !appliedKeys.has(promotionKey(promotion)),
@@ -71,8 +91,25 @@ export function CartPromotions({
 
     // Applied first, and an applied promotion that dropped out of the candidate
     // list must stay removable.
-    return [...applied, ...candidates];
-  }, [availablePromotionsByCart, cartId, applied, appliedKeys]);
+    //
+    // The two lists describe a product reward from different sides: the cart
+    // says which line it landed on, the available list says how far the customer
+    // is toward the next one. Merging keeps both halves on the applied row —
+    // the cart's values win wherever they overlap.
+    const mergedApplied = applied.map((appliedPromotion) => {
+      const candidate = availableByKey.get(promotionKey(appliedPromotion));
+      if (!candidate) return appliedPromotion;
+      return {
+        ...candidate,
+        ...appliedPromotion,
+        productReward: (candidate.productReward || appliedPromotion.productReward)
+          ? { ...candidate.productReward, ...appliedPromotion.productReward }
+          : null,
+      };
+    });
+
+    return [...mergedApplied, ...candidates];
+  }, [availablePromotionsByCart, cartId, applied, appliedKeys, availableByKey]);
 
   const appliedRekonectCount = applied.filter(
     (promotion) => promotion.type === LoyaltyProviderType.REKONECT,
@@ -154,8 +191,11 @@ export function CartPromotions({
             const isApplied = appliedKeys.has(promotionKey(promotion));
             // Several Rekonect campaigns can sit on one cart, so they are removed
             // by their own code; internal coupons are removed per provider.
+            // A product reward can sit next to a regular coupon, so like a
+            // Rekonect campaign it is removed by its own code. Plain internal
+            // coupons keep being removed per provider.
             const removeInput: RemovePromotionInput =
-              promotion.type === LoyaltyProviderType.REKONECT
+              promotion.type === LoyaltyProviderType.REKONECT || getProductReward(promotion)
                 ? { type: promotion.type, promotionCode: promotion.promotionCode }
                 : { type: promotion.type };
 
@@ -165,10 +205,13 @@ export function CartPromotions({
                 promotion={promotion}
                 isApplied={isApplied}
                 isPending={isPromotionPending(cartId, isApplied ? removeInput : promotion)}
-                onApply={() =>
+                cartItems={cartItems ?? []}
+                menuHref={menuHref}
+                onApply={(selectedCartItemId) =>
                   applyPromotion(cartId, {
                     type: promotion.type,
                     promotionCode: promotion.promotionCode,
+                    ...(selectedCartItemId ? { selectedCartItemId } : {}),
                   })
                 }
                 onRemove={() => removePromotion(cartId, removeInput)}
@@ -208,18 +251,57 @@ function PromotionRow({
   promotion,
   isApplied,
   isPending,
+  cartItems,
+  menuHref,
   onApply,
   onRemove,
 }: {
   promotion: CartPromotion;
   isApplied: boolean;
   isPending: boolean;
-  onApply: () => void;
+  cartItems: CartItem[];
+  menuHref: string;
+  onApply: (selectedCartItemId?: string) => Promise<boolean> | void;
   onRemove: () => void;
 }) {
   const { t } = useTranslation();
   const [imageSrc, setImageSrc] = useState(() => promotion.imageUrl || DEFAULT_PRODUCT_IMAGE);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
   const unapplicableReason = resolveUnapplicableReason(promotion.unapplicableReason, t);
+
+  const productReward = getProductReward(promotion);
+  const progress = resolveProductRewardProgress(productReward);
+  // The customer picks which cart line a product reward is spent on, so the
+  // eligible lines are recomputed from the live cart — a cart change drops the
+  // promotion on the backend and has to drop a stale selection here too.
+  const eligibleItems = useMemo(
+    () => resolveEligibleRewardItems(productReward, cartItems),
+    [productReward, cartItems],
+  );
+  const needsSelection = !isApplied && requiresRewardSelection(promotion);
+  // Applying the reward removes the reason to choose, which closes the picker
+  // on its own — no effect needed to tidy up after it.
+  const showPicker = isPickerOpen && needsSelection;
+
+  const handleApply = async (selectedCartItemId?: string) => {
+    const applied = await onApply(selectedCartItemId);
+    // A rejected selection leaves the picker open with the refreshed cart, so
+    // the customer can choose again without reopening it.
+    if (applied) setIsPickerOpen(false);
+  };
+
+  const handleApplyClick = () => {
+    if (!needsSelection) {
+      handleApply();
+      return;
+    }
+    // Nothing to choose between: one eligible line is the selection.
+    if (eligibleItems.length === 1) {
+      handleApply(eligibleItems[0].id);
+      return;
+    }
+    setIsPickerOpen(true);
+  };
 
   return (
     <li
@@ -250,11 +332,23 @@ function PromotionRow({
         {promotion.description ? (
           <p className="mt-1 break-words text-xs leading-snug text-zinc-500">{promotion.description}</p>
         ) : null}
-        {!isApplied && !promotion.applicable ? (
+        {/* "Not earned yet" is exactly what the progress bar below already says,
+            so a reward row with a bar drops the sentence. */}
+        {!isApplied && !promotion.applicable && !(productReward && progress) ? (
           <p className="mt-1 break-words text-xs leading-snug text-amber-600">
             {unapplicableReason || t('cart.loyalty.conditionsHint')}
           </p>
         ) : null}
+        {productReward && (
+          <ProductRewardProgress
+            reward={productReward}
+            isApplied={isApplied}
+            applicable={promotion.applicable}
+            unapplicableReason={promotion.unapplicableReason}
+            cartItems={cartItems}
+            menuHref={menuHref}
+          />
+        )}
       </div>
 
       <div className="w-full shrink-0 sm:w-auto">
@@ -276,13 +370,23 @@ function PromotionRow({
             size="sm"
             isLoading={isPending}
             disabled={!promotion.applicable}
-            onClick={onApply}
+            onClick={handleApplyClick}
             className="w-full sm:w-auto"
           >
-            {t('cart.loyalty.apply')}
+            {needsSelection ? t('cart.loyalty.productReward.choose') : t('cart.loyalty.apply')}
           </Button>
         )}
       </div>
+
+      {showPicker && productReward && (
+        <RewardItemPicker
+          reward={productReward}
+          items={eligibleItems}
+          isPending={isPending}
+          onConfirm={handleApply}
+          onClose={() => setIsPickerOpen(false)}
+        />
+      )}
     </li>
   );
 }

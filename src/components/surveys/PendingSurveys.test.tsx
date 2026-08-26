@@ -14,7 +14,12 @@ const stable = vi.hoisted(() => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
-vi.mock('react-i18next', () => ({ useTranslation: () => stable.translation }));
+vi.mock('react-i18next', () => ({
+  useTranslation: () => stable.translation,
+  // The component now resolves API error codes through `@/lib/api-errors`,
+  // which pulls in the i18n config module.
+  initReactI18next: { type: '3rdParty', init: () => {} },
+}));
 vi.mock('sonner', () => ({ toast: stable.toast }));
 
 const mockedSurveyService = vi.mocked(surveyService);
