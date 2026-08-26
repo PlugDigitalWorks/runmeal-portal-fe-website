@@ -18,7 +18,12 @@ import { AddressForm, AddressFormValues } from '@/components/address/AddressForm
 import { CartPromotions } from '@/components/cart/CartPromotions';
 import { FulfillmentSlotPicker } from '@/components/checkout/FulfillmentSlotPicker';
 import type { Address } from '@/types/address';
-import type { Branch, ScheduledOrderType } from '@/types/branch';
+import {
+    resolveOrderTypeSettings,
+    resolvePaymentSettings,
+    type Branch,
+    type ScheduledOrderType,
+} from '@/types/branch';
 import { cartService } from '@/services/cart.service';
 import { getCartId, type Cart, type CartItem, type CartLoyaltyWallet } from '@/types/cart';
 import { formatCurrencyAmount, resolveCurrencySymbol } from '@/lib/currency';
@@ -258,19 +263,26 @@ export default function CheckoutView() {
 
     // Only the fulfillment types this branch actually offers. A branch payload
     // without `order_type_settings` predates the feature and offers delivery only.
-    const orderTypeSettings = branchSettings?.order_type_settings;
+    const orderTypeSettings = resolveOrderTypeSettings(branchSettings);
     const orderTypeOptions = useMemo(
         () => ORDER_TYPE_OPTIONS.filter(
             (option) => orderTypeSettings?.[option.settingKey]?.isActive ?? option.defaultActive,
         ),
         [orderTypeSettings],
     );
+    /**
+     * The branch published its fulfillment settings and turned everything off.
+     * Distinct from "no settings at all", which still means delivery — so the
+     * customer is warned rather than silently sent down the delivery path the
+     * backend will reject.
+     */
+    const hasNoActiveOrderType = !!orderTypeSettings && orderTypeOptions.length === 0;
     const isPickup = isPickupOrderType(orderType);
     const isScheduled = isScheduledOrderType(orderType);
 
     // A branch that takes no card payments still shows cash; one with no
     // settings at all is assumed to be online-card only, as the backend is.
-    const paymentSettings = branchSettings?.payment_settings;
+    const paymentSettings = resolvePaymentSettings(branchSettings);
     const paymentMethodOptions = useMemo(() => {
         const isActive: Record<PaymentMethod, boolean> = {
             ONLINE_CARD: paymentSettings ? (paymentSettings.onlineMethods?.card?.isActive ?? false) : true,
@@ -714,6 +726,13 @@ export default function CheckoutView() {
 
                 <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]">
                     <div className="space-y-6">
+
+                        {hasNoActiveOrderType && (
+                            <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                                <p>{t('checkout.noOrderType')}</p>
+                            </div>
+                        )}
 
                         {/* Fulfillment — what the branch offers, and when */}
                         {orderTypeOptions.length > 1 && (
