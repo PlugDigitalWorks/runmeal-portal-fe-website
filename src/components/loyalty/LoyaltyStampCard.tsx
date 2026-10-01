@@ -10,6 +10,7 @@ import {
     resolveStampProgress,
 } from '@/lib/loyalty-stamps';
 import { StampCard } from '@/types/loyalty-stamp';
+import { AddToAppleWalletButton } from '@/components/loyalty/AddToAppleWalletButton';
 
 /**
  * One category campaign card: the stamp grid and the progress copy.
@@ -17,7 +18,8 @@ import { StampCard } from '@/types/loyalty-stamp';
  * There is deliberately no QR and no redeem button here. The code the manager
  * scans is the customer's member QR — one per customer, rendered once by the
  * wallet — and redemption is confirmed by the manager after that scan, never
- * from the customer app.
+ * from the customer app. The Apple Wallet pass offered at the bottom is per
+ * campaign and carries that same member QR.
  */
 
 interface LoyaltyStampCardProps {
@@ -138,6 +140,8 @@ export function LoyaltyStampCardView({ card }: LoyaltyStampCardProps) {
                 {expiryLabel && (
                     <p className="text-center text-[11px] text-zinc-400">{t('rewards.rewardExpiresAt', { date: expiryLabel })}</p>
                 )}
+
+                <AddToAppleWalletButton brandId={card.brandId} campaignId={card.campaignId} />
             </div>
         </div>
     );

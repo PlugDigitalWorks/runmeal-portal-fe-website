@@ -191,7 +191,9 @@
     "TABLE_PAY_LATER_DISABLED": "Pay later is not enabled for this table.",
     "TABLE_PAY_NOW_DISABLED": "Pay now is not enabled for this table.",
     "USER_ACTIVE_ADDRESS_LOCATION_MISSING": "The active address is missing location data.",
-    "VALIDATION_FAILED": "Some of the submitted values are not valid."
+    "VALIDATION_FAILED": "Some of the submitted values are not valid.",
+    "APPLE_WALLET_UNAVAILABLE": "Apple Wallet is temporarily unavailable. Please try again later.",
+    "LOYALTY_STAMP_CAMPAIGN_NOT_FOUND": "This loyalty card is no longer available."
   },
   "auth": {
     "footer": "© 2024 Runmeal Inc.",
@@ -791,6 +793,12 @@
       }
     },
     "unnamedBrand": "Restaurant",
-    "emptyDescription": "Order from a participating restaurant to start collecting stamps."
+    "emptyDescription": "Order from a participating restaurant to start collecting stamps.",
+    "appleWallet": {
+      "add": "Add to Apple Wallet",
+      "creating": "Preparing your pass...",
+      "error": "Your Apple Wallet pass could not be created. Please try again.",
+      "macHint": "Apple Wallet passes are added on iPhone. On a Mac the pass may only open as a preview or a download."
+    }
   }
 }

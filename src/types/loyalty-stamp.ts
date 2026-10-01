@@ -31,6 +31,12 @@ export interface StampQrResponse {
   qrValue: string;
 }
 
+/** `POST /loyalty/stamps/me/:brandId/:campaignId/apple-wallet` */
+export interface AppleWalletLinkResponse {
+  /** Absolute, single-use `.pkpass` URL that expires after five minutes. */
+  url: string;
+}
+
 /**
  * One category campaign's progress. Counters are authoritative — never derive
  * them from transaction history and never increment them optimistically.

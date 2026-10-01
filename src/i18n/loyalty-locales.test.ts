@@ -79,6 +79,11 @@ const REQUIRED_KEYS = [
   'survey.errors.alreadyEvaluated',
   'survey.errors.orderUnavailable',
   'survey.errors.questionsChanged',
+  'rewards.appleWallet.add',
+  'rewards.appleWallet.creating',
+  'rewards.appleWallet.error',
+  'rewards.appleWallet.macHint',
+  'apiErrors.APPLE_WALLET_UNAVAILABLE',
 ];
 
 describe.each(Object.entries(locales))('%s loyalty translations', (_locale, bundle) => {
