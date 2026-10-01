@@ -1,8 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 
+import { resolveApiErrorMessage } from '@/lib/api-errors';
+import { AppleWalletPlatform, detectAppleWalletPlatform, parseAppleWalletDownloadUrl } from '@/lib/apple-wallet';
 import { getApiErrorCode, getApiErrorStatus } from '@/lib/loyalty-errors';
 import { STAMP_QR_INVALID_CODE } from '@/lib/loyalty-stamps';
 import { loyaltyStampService, StampTransactionQuery } from '@/services/loyalty-stamp.service';
@@ -353,3 +356,78 @@ export function useStampTransactions(
 
 /** Stable empty list so callers can default a filter object without re-running effects. */
 export const useNoFilters = () => useMemo<StampTransactionQuery>(() => ({}), []);
+
+export interface AppleWalletPassState {
+  /** `unsupported` until mounted, so server and first client render agree. */
+  platform: AppleWalletPlatform;
+  isCreating: boolean;
+  error: string | null;
+  add: () => void;
+}
+
+/**
+ * How long the button stays locked after handing the browser to the `.pkpass`.
+ * iOS shows the pass as a system sheet over the page, so nothing unloads; the
+ * pause stops a second tap from spending another single-use link meanwhile.
+ */
+const APPLE_WALLET_HANDOFF_LOCK_MS = 2500;
+
+/**
+ * "Add to Apple Wallet" for one campaign card.
+ *
+ * Every click asks the backend for a new link: the URL is single-use and dies
+ * after five minutes, so it is never stored or reused. The browser is sent to
+ * the URL exactly as returned; the frontend never builds the download path.
+ */
+export function useAppleWalletPass(brandId: string, campaignId: string): AppleWalletPassState {
+  const { t } = useTranslation();
+  const handle401 = useSignOutOn401();
+  const [platform, setPlatform] = useState<AppleWalletPlatform>('unsupported');
+  const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inFlightRef = useRef(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    setPlatform(detectAppleWalletPlatform());
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const add = useCallback(async () => {
+    // A ref, not state: two taps in the same frame both see stale state.
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+    setIsCreating(true);
+    setError(null);
+
+    try {
+      const result = await loyaltyStampService.createAppleWalletLink(brandId, campaignId);
+      const url = parseAppleWalletDownloadUrl(result?.url);
+      if (!url) {
+        if (mountedRef.current) setError(t('rewards.appleWallet.error'));
+        return;
+      }
+
+      window.location.assign(url);
+      await new Promise((resolve) => setTimeout(resolve, APPLE_WALLET_HANDOFF_LOCK_MS));
+    } catch (requestError) {
+      if (!mountedRef.current || handle401(requestError)) return;
+      setError(resolveApiErrorMessage(requestError, t('rewards.appleWallet.error')));
+    } finally {
+      inFlightRef.current = false;
+      if (mountedRef.current) setIsCreating(false);
+    }
+  }, [brandId, campaignId, handle401, t]);
+
+  return {
+    platform,
+    isCreating,
+    error,
+    add: useCallback(() => {
+      void add();
+    }, [add]),
+  };
+}

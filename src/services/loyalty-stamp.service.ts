@@ -1,6 +1,7 @@
 import { api } from '@/lib/axios';
 import { ApiResponse, PaginatedApiResponse, PaginationMeta } from '@/types/auth';
 import {
+    AppleWalletLinkResponse,
     CustomerStampTransaction,
     StampAvailability,
     StampCard,
@@ -47,6 +48,18 @@ export const loyaltyStampService = {
     async getCards(brandId: string) {
         const response = await api.get<ApiResponse<StampCard[]>>(`/loyalty/stamps/me/${brandId}`);
         return response.data.data ?? [];
+    },
+
+    /**
+     * Asks the backend for a fresh, single-use Apple Wallet download link for one
+     * campaign card. The link expires after five minutes and is consumed on first
+     * download, so it is requested on every click and never cached.
+     */
+    async createAppleWalletLink(brandId: string, campaignId: string) {
+        const response = await api.post<ApiResponse<AppleWalletLinkResponse>>(
+            `/loyalty/stamps/me/${encodeURIComponent(brandId)}/${encodeURIComponent(campaignId)}/apple-wallet`,
+        );
+        return response.data.data;
     },
 
     async getTransactions(brandId: string, query: StampTransactionQuery = {}): Promise<StampTransactionPage> {

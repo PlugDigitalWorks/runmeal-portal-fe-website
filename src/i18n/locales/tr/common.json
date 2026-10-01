@@ -191,7 +191,9 @@
     "TABLE_PAY_LATER_DISABLED": "Bu masa için sonra öde etkin değil.",
     "TABLE_PAY_NOW_DISABLED": "Bu masa için şimdi öde etkin değil.",
     "USER_ACTIVE_ADDRESS_LOCATION_MISSING": "Aktif adreste konum bilgisi eksik.",
-    "VALIDATION_FAILED": "Gönderilen bazı değerler geçerli değil."
+    "VALIDATION_FAILED": "Gönderilen bazı değerler geçerli değil.",
+    "APPLE_WALLET_UNAVAILABLE": "Apple Cüzdan şu anda kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
+    "LOYALTY_STAMP_CAMPAIGN_NOT_FOUND": "Bu sadakat kartı artık kullanılamıyor."
   },
   "auth": {
     "footer": "© 2024 Runmeal Inc.",
@@ -791,6 +793,12 @@
       }
     },
     "unnamedBrand": "Restoran",
-    "emptyDescription": "Damga toplamaya başlamak için katılımcı bir restorandan sipariş verin."
+    "emptyDescription": "Damga toplamaya başlamak için katılımcı bir restorandan sipariş verin.",
+    "appleWallet": {
+      "add": "Apple Cüzdan'a Ekle",
+      "creating": "Kartınız hazırlanıyor...",
+      "error": "Apple Cüzdan kartınız oluşturulamadı. Lütfen tekrar deneyin.",
+      "macHint": "Apple Cüzdan kartları iPhone'a eklenir. Mac'te kart yalnızca önizleme veya indirme olarak açılabilir."
+    }
   }
 }
