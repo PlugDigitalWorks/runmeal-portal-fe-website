@@ -1,9 +1,8 @@
 'use client';
 
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, CalendarClock, CreditCard, MapPin, Package, ReceiptText, Store, Wallet } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { CalendarClock, CreditCard, MapPin, Package, ReceiptText, Store, Wallet } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { branchService } from '@/services/branch.service';
 import { Order, OrderDetails } from '@/services/order.service';
@@ -65,7 +64,6 @@ export default function OrderDetailPage() {
   const { t } = useTranslation();
   const params = useParams<{ orderId: string }>();
   const searchParams = useSearchParams();
-  const router = useRouter();
 
   const orderId = Array.isArray(params.orderId) ? params.orderId[0] : params.orderId;
   const [order, setOrder] = useState<OrderDetails | null>(null);
@@ -142,10 +140,6 @@ export default function OrderDetailPage() {
   if (error || !order) {
     return (
       <div className="container mx-auto max-w-3xl px-4 py-10">
-        <Button variant="ghost" onClick={() => router.back()} className="mb-4">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          {t('orders.back')}
-        </Button>
         <Card>
           <CardContent className="py-10 text-center text-red-600">
             {error || t('orders.loadError')}
@@ -158,10 +152,6 @@ export default function OrderDetailPage() {
   return (
     <div className="min-h-screen bg-zinc-50">
       <div className="container mx-auto max-w-4xl px-4 py-8">
-        <Button variant="ghost" onClick={() => router.back()} className="mb-4">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          {t('orders.back')}
-        </Button>
 
         <div className="space-y-6">
           <Card className="overflow-hidden">
