@@ -665,7 +665,8 @@
     "pendingText": "Bankanız ödemeyi henüz onaylamadı. Onaylandığında siparişleriniz arasında görünecek.",
     "checkAgain": "Tekrar kontrol et",
     "redirecting": "Güvenli ödeme sayfasına geri yönlendiriliyorsunuz...",
-    "viewOrder": "Siparişi görüntüle"
+    "viewOrder": "Siparişi görüntüle",
+    "redirectingToOrder": "{{seconds}} saniye içinde sipariş detayına yönlendiriliyorsunuz…"
   },
   "contact": {
     "title": "Şubeye Ulaşın",
