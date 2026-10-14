@@ -1,4 +1,4 @@
-import { api, authApi, AUTH_CLIENT } from '@/lib/axios';
+import { api, authApi, AUTH_CLIENT, postSessionRefresh } from '@/lib/axios';
 import {
   LoginDto,
   RegisterDto,
@@ -114,9 +114,7 @@ export const authService = {
   },
 
   async refreshSessionFromCookies() {
-    const response = await authApi.post<ApiResponse<RefreshResponse>>('/auth/refresh', {
-      client: AUTH_CLIENT,
-    });
+    const response = await postSessionRefresh<ApiResponse<RefreshResponse>>();
     persistRefreshResponse(response.data.data);
     return response.data.data;
   },
