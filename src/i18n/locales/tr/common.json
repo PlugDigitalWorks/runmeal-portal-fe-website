@@ -233,6 +233,7 @@
       "verify": "Kodu Doğrula",
       "verifying": "Doğrulanıyor...",
       "resend": "Kodu Tekrar Gönder",
+      "resendCheck": "Yeni kod göndermek için doğrulamayı tamamlayın.",
       "changeEmail": "E-postayı Değiştir",
       "sendCode": "Kod Gönder",
       "sendingCode": "Kod gönderiliyor...",

@@ -233,6 +233,7 @@
       "verify": "Verify Code",
       "verifying": "Verifying...",
       "resend": "Resend Code",
+      "resendCheck": "Complete the check to send a new code.",
       "changeEmail": "Change Email",
       "sendCode": "Send Code",
       "sendingCode": "Sending code...",
