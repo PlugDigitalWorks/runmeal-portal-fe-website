@@ -1,8 +1,10 @@
 'use client';
 
 import { ArrowLeft, MailCheck } from 'lucide-react';
-import { FormEvent, ReactNode, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { getRecaptchaSiteKey } from '@/lib/recaptcha';
+import { RecaptchaWidget } from './RecaptchaWidget';
 import { Button } from '@/components/ui/button';
 
 interface OtpChallengeProps {
@@ -10,15 +12,32 @@ interface OtpChallengeProps {
   error: string | null;
   isLoading: boolean;
   onVerify: (code: string) => Promise<void>;
-  onResend: () => Promise<void>;
+  /** Receives the reCAPTCHA token when the check is enabled. */
+  onResend: (recaptchaToken?: string) => Promise<void>;
   onBack: () => void;
-  resendDisabled?: boolean;
-  resendVerification?: ReactNode;
 }
 
-export function OtpChallenge({ email, error, isLoading, onVerify, onResend, onBack, resendDisabled, resendVerification }: OtpChallengeProps) {
+export function OtpChallenge({ email, error, isLoading, onVerify, onResend, onBack }: OtpChallengeProps) {
   const { t } = useTranslation();
   const [code, setCode] = useState('');
+  // The check only appears once resend is asked for, so it never looks like
+  // part of signing in; solving it sends the code straight away.
+  const [isResendCheckOpen, setIsResendCheckOpen] = useState(false);
+  const isRecaptchaEnabled = Boolean(getRecaptchaSiteKey());
+
+  const requestResend = () => {
+    if (isRecaptchaEnabled) {
+      setIsResendCheckOpen(true);
+      return;
+    }
+    void onResend();
+  };
+
+  const resendWithToken = (token: string | null) => {
+    if (!token) return;
+    setIsResendCheckOpen(false);
+    void onResend(token);
+  };
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -58,11 +77,16 @@ export function OtpChallenge({ email, error, isLoading, onVerify, onResend, onBa
       <Button type="submit" className="w-full" size="lg" isLoading={isLoading} disabled={code.length !== 6}>
         {isLoading ? t('auth.otp.verifying') : t('auth.otp.verify')}
       </Button>
-      {resendVerification}
       <div className="flex items-center justify-between gap-4 text-sm">
         <button type="button" onClick={onBack} disabled={isLoading} className="inline-flex items-center text-zinc-500 hover:text-zinc-800 disabled:opacity-50"><ArrowLeft className="mr-1 h-4 w-4" />{t('auth.otp.changeEmail')}</button>
-        <button type="button" onClick={() => void onResend()} disabled={isLoading || resendDisabled} className="font-medium text-orange-600 hover:text-orange-500 disabled:opacity-50">{t('auth.otp.resend')}</button>
+        <button type="button" onClick={requestResend} disabled={isLoading || isResendCheckOpen} className="font-medium text-orange-600 hover:text-orange-500 disabled:opacity-50">{t('auth.otp.resend')}</button>
       </div>
+      {isResendCheckOpen && (
+        <div className="space-y-2">
+          <p className="text-center text-sm text-zinc-500">{t('auth.otp.resendCheck')}</p>
+          <RecaptchaWidget onTokenChange={resendWithToken} />
+        </div>
+      )}
     </form>
   );
 }

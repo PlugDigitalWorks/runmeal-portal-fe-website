@@ -11,7 +11,8 @@ export function GoogleMapsProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <APIProvider apiKey={apiKey} libraries={['places', 'geocoding']}>
+    // English so geocoder names match the country-state-city dataset used by the address form.
+    <APIProvider apiKey={apiKey} language="en" libraries={['places', 'geocoding']}>
       {children}
     </APIProvider>
   );

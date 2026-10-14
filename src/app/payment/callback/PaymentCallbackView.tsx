@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { OrderRedirectCountdown } from '@/components/orders/OrderRedirectCountdown';
 import { ReceiptAccountPanel } from '@/components/orders/ReceiptAccountPanel';
 import { useCart } from '@/context/CartContext';
 import {
@@ -49,6 +50,8 @@ export function PaymentCallbackView() {
     const [orderId, setOrderId] = useState<string | null>(orderIdParam);
     const [isRetrying, setIsRetrying] = useState(false);
     const [retryFormHtml, setRetryFormHtml] = useState<string | null>(null);
+    // Typing a receipt address must not be cut short by the redirect.
+    const [isAutoRedirectCancelled, setIsAutoRedirectCancelled] = useState(false);
 
     /**
      * The success URL alone proves nothing — the backend callback/webhook is
@@ -186,8 +189,16 @@ export function PaymentCallbackView() {
                             <h1 className="mb-2 text-2xl font-bold text-zinc-900">{t('payment.successTitle')}</h1>
                             <p className="mb-8 text-zinc-500">{t('payment.successText')}</p>
 
+                            {orderHref && !isAutoRedirectCancelled && (
+                                <OrderRedirectCountdown href={orderHref} />
+                            )}
+
                             {orderId && (
-                                <div className="mb-6 w-full">
+                                <div
+                                    className="mb-6 w-full"
+                                    onFocusCapture={() => setIsAutoRedirectCancelled(true)}
+                                    onPointerDownCapture={() => setIsAutoRedirectCancelled(true)}
+                                >
                                     <ReceiptAccountPanel orderId={orderId} />
                                 </div>
                             )}
@@ -195,7 +206,7 @@ export function PaymentCallbackView() {
                             <div className="w-full space-y-3">
                                 <Button
                                     className="h-11 w-full bg-orange-600 font-bold text-white hover:bg-orange-700"
-                                    onClick={() => router.push(orderHref ?? '/profile?tab=orders')}
+                                    onClick={() => (orderHref ? router.replace(orderHref) : router.push('/profile?tab=orders'))}
                                 >
                                     {orderHref ? t('payment.viewOrder') : t('payment.viewMyOrders')}
                                     <ArrowRight className="ml-2 h-4 w-4" />

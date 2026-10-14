@@ -233,6 +233,7 @@
       "verify": "Kodu Doğrula",
       "verifying": "Doğrulanıyor...",
       "resend": "Kodu Tekrar Gönder",
+      "resendCheck": "Yeni kod göndermek için doğrulamayı tamamlayın.",
       "changeEmail": "E-postayı Değiştir",
       "sendCode": "Kod Gönder",
       "sendingCode": "Kod gönderiliyor...",
@@ -664,7 +665,8 @@
     "pendingText": "Bankanız ödemeyi henüz onaylamadı. Onaylandığında siparişleriniz arasında görünecek.",
     "checkAgain": "Tekrar kontrol et",
     "redirecting": "Güvenli ödeme sayfasına geri yönlendiriliyorsunuz...",
-    "viewOrder": "Siparişi görüntüle"
+    "viewOrder": "Siparişi görüntüle",
+    "redirectingToOrder": "{{seconds}} saniye içinde sipariş detayına yönlendiriliyorsunuz…"
   },
   "contact": {
     "title": "Şubeye Ulaşın",

@@ -1,6 +1,8 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import Cookies from 'js-cookie';
 
+import type { AuthClient } from '@/types/auth';
+
 const AUTH_BYPASS_PATHS = ['/auth/refresh', '/auth/login', '/auth/register', '/auth/verify-otp'];
 
 const isAuthBypassUrl = (url?: string) =>
@@ -14,7 +16,7 @@ const API_URL =
 /**
  * Auth endpoints must bypass the `/api` rewrite and hit the API host directly.
  *
- * The backend issues `refresh`/`sid` on the API origin scoped to
+ * The backend issues `refresh_user`/`sid_user` on the API origin scoped to
  * `Path=/auth/refresh`. A call to `/api/auth/refresh` does not path-match that
  * cookie, so the browser never attaches it and refresh answers 401. Both hosts
  * sit under `runmeal.com`, so the cookie is same-site and CORS already allows
@@ -23,6 +25,13 @@ const API_URL =
 export const AUTH_API_URL = (
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 ).replace(/\/+$/, '');
+
+/**
+ * Which app this session belongs to. The API scopes refresh cookies per client
+ * (`refresh_user`/`sid_user`), so login, OTP verification and refresh must all
+ * name the same one.
+ */
+export const AUTH_CLIENT: AuthClient = 'user';
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -124,9 +133,10 @@ api.interceptors.response.use(
       }
 
         // Direct to the API host: Google sessions carry no JS-readable
-        // refreshToken/sid, so the httpOnly `refresh` cookie is the only
+        // refreshToken/sid, so the httpOnly `refresh_user` cookie is the only
         // credential here and it only travels to the API origin.
         const response = await authApi.post('/auth/refresh', {
+            client: AUTH_CLIENT,
             ...(refreshToken && sid ? { refreshToken, sid } : {}),
         });
 

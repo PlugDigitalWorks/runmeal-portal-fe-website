@@ -90,21 +90,20 @@ export default function LoginPage() {
     }
   };
 
-  const resendCode = async () => {
+  const resendCode = async (resendToken?: string) => {
     if (!sentEmail) return;
-    if (isRecaptchaEnabled && !recaptchaToken) {
+    if (isRecaptchaEnabled && !resendToken) {
       setError(t('auth.validation.securityCheck'));
       return;
     }
     setIsLoading(true);
     setError(null);
     try {
-      await authService.requestOtpLogin(sentEmail, recaptchaToken ?? undefined);
+      await authService.requestOtpLogin(sentEmail, resendToken);
       toast.success(t('auth.otp.resent'));
     } catch (resendError) {
       setError(resolveApiErrorMessage(resendError, t('auth.validation.generic')));
     } finally {
-      resetCaptcha();
       setIsLoading(false);
     }
   };
@@ -147,8 +146,6 @@ export default function LoginPage() {
               onVerify={verifyCode}
               onResend={resendCode}
               onBack={() => { setSentEmail(null); setError(null); resetCaptcha(); }}
-              resendDisabled={isRecaptchaEnabled && !recaptchaToken}
-              resendVerification={<RecaptchaWidget onTokenChange={setRecaptchaToken} resetKey={recaptchaResetKey} />}
             />
           ) : (
             <>

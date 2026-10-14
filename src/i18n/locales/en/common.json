@@ -233,6 +233,7 @@
       "verify": "Verify Code",
       "verifying": "Verifying...",
       "resend": "Resend Code",
+      "resendCheck": "Complete the check to send a new code.",
       "changeEmail": "Change Email",
       "sendCode": "Send Code",
       "sendingCode": "Sending code...",
@@ -664,7 +665,8 @@
     "pendingText": "Your bank has not confirmed the payment yet. It will appear under your orders once it does.",
     "checkAgain": "Check again",
     "redirecting": "Taking you back to the secure payment page...",
-    "viewOrder": "View order"
+    "viewOrder": "View order",
+    "redirectingToOrder": "Taking you to your order in {{seconds}}s…"
   },
   "contact": {
     "title": "Contact the Branch",
