@@ -1,4 +1,4 @@
-import { api, authApi } from '@/lib/axios';
+import { api, authApi, AUTH_CLIENT } from '@/lib/axios';
 import {
   LoginDto,
   RegisterDto,
@@ -12,8 +12,6 @@ import {
   VerifyOtpDto,
 } from '@/types/auth';
 import Cookies from 'js-cookie';
-
-const AUTH_CLIENT = 'user';
 
 const unwrapAuthData = <T>(payload: ApiResponse<T> | T): T => {
   if (payload && typeof payload === 'object' && 'data' in payload) {
@@ -97,7 +95,10 @@ export const authService = {
   },
 
   async verifyOtp(data: VerifyOtpDto) {
-    const response = await api.post<ApiResponse<AuthResponse> | AuthResponse>('/auth/verify-otp', data);
+    const response = await api.post<ApiResponse<AuthResponse> | AuthResponse>('/auth/verify-otp', {
+      ...data,
+      client: AUTH_CLIENT,
+    });
     const authResponse = unwrapAuthData(response.data);
     persistAuthResponse(authResponse);
     return authResponse;
@@ -113,7 +114,9 @@ export const authService = {
   },
 
   async refreshSessionFromCookies() {
-    const response = await authApi.post<ApiResponse<RefreshResponse>>('/auth/refresh', {});
+    const response = await authApi.post<ApiResponse<RefreshResponse>>('/auth/refresh', {
+      client: AUTH_CLIENT,
+    });
     persistRefreshResponse(response.data.data);
     return response.data.data;
   },
