@@ -1,7 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import Cookies from 'js-cookie';
 
-import type { AuthClient } from '@/types/auth';
+import type { AuthClient, RefreshResponse } from '@/types/auth';
 
 const AUTH_BYPASS_PATHS = ['/auth/refresh', '/auth/login', '/auth/register', '/auth/verify-otp'];
 
@@ -51,6 +51,15 @@ export const authApi = axios.create({
     'x-auth-mode': 'body', // Request tokens in body
   },
 });
+
+/**
+ * The one way to call `/auth/refresh`. The API rejects a refresh without
+ * `client` (400), so every caller goes through here instead of posting to the
+ * endpoint itself. `credentials` are the readable body-mode cookies; without
+ * them the API falls back to its own httpOnly cookies (e.g. after Google).
+ */
+export const postSessionRefresh = <T = unknown>(credentials?: { refreshToken: string; sid: string }) =>
+  authApi.post<T>('/auth/refresh', { client: AUTH_CLIENT, ...credentials });
 
 api.interceptors.request.use(async (config) => {
   let token: string | undefined;
@@ -135,10 +144,9 @@ api.interceptors.response.use(
         // Direct to the API host: Google sessions carry no JS-readable
         // refreshToken/sid, so the httpOnly `refresh_user` cookie is the only
         // credential here and it only travels to the API origin.
-        const response = await authApi.post('/auth/refresh', {
-            client: AUTH_CLIENT,
-            ...(refreshToken && sid ? { refreshToken, sid } : {}),
-        });
+        const response = await postSessionRefresh<{ data?: RefreshResponse } & RefreshResponse>(
+            refreshToken && sid ? { refreshToken, sid } : undefined,
+        );
 
         const data = response.data.data || response.data;
         const { accessToken, refreshToken: newRefresh, sid: newSid } = data;
