@@ -23,6 +23,7 @@
     "AUTH_EMAIL_UNVERIFIED": "Giriş yapmadan önce e-postanızı doğrulayın.",
     "AUTH_GOOGLE_ACCOUNT_MISMATCH": "Bu e-posta zaten farklı bir Google hesabına bağlı.",
     "AUTH_GOOGLE_CALLBACK_INVALID": "Google ile giriş isteğinde gerekli bilgiler eksik.",
+    "AUTH_GOOGLE_HANDOFF_INVALID": "Google ile giriş tamamlanamadı. Lütfen tekrar deneyin.",
     "AUTH_GOOGLE_NOT_CONFIGURED": "Google ile giriş bu site için kullanılamıyor.",
     "AUTH_GOOGLE_STATE_INVALID": "Google ile giriş oturumunuzun süresi doldu. Lütfen tekrar deneyin.",
     "AUTH_GOOGLE_VERIFICATION_FAILED": "Google hesabınızı doğrulayamadık. Lütfen tekrar deneyin.",
