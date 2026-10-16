@@ -115,13 +115,19 @@ export default function LoginPage() {
     if (!authStatus) return;
     handledGoogleCallbackRef.current = true;
     const reason = params.get('reason');
+    // The handoff code is a one-time credential: take it off the URL first.
+    const handoff = params.get('handoff') || undefined;
     window.history.replaceState(null, '', '/login');
     if (authStatus === 'success') {
       setIsLoading(true);
       setError(null);
-      authService.completeGoogleLogin()
+      authService.completeGoogleLogin(handoff)
         .then(() => { router.push('/'); router.refresh(); })
-        .catch(() => setError(t('auth.login.googleRestoreError')))
+        .catch((googleError) => setError(
+          handoff
+            ? resolveApiErrorMessage(googleError, t('auth.login.googleFailed'))
+            : t('auth.login.googleRestoreError'),
+        ))
         .finally(() => setIsLoading(false));
       return;
     }

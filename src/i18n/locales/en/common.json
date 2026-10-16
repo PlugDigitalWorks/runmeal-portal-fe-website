@@ -23,6 +23,7 @@
     "AUTH_EMAIL_UNVERIFIED": "Verify your email before signing in.",
     "AUTH_GOOGLE_ACCOUNT_MISMATCH": "This email is already linked to a different Google account.",
     "AUTH_GOOGLE_CALLBACK_INVALID": "The Google sign-in request is missing required information.",
+    "AUTH_GOOGLE_HANDOFF_INVALID": "Your Google sign-in could not be completed. Please try again.",
     "AUTH_GOOGLE_NOT_CONFIGURED": "Google sign-in is not available for this site.",
     "AUTH_GOOGLE_STATE_INVALID": "Your Google sign-in session has expired. Please try again.",
     "AUTH_GOOGLE_VERIFICATION_FAILED": "We could not verify your Google account. Please try again.",

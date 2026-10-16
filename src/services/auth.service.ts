@@ -44,6 +44,23 @@ const persistUser = (user: User) => {
   Cookies.set('user', JSON.stringify(user));
 };
 
+/**
+ * A handoff code is single-use, so a second exchange for the same code (e.g.
+ * React StrictMode running the callback effect twice) shares the first call
+ * instead of failing with AUTH_GOOGLE_HANDOFF_INVALID.
+ */
+let pendingHandoff: { code: string; promise: Promise<AuthResponse> } | null = null;
+
+const exchangeGoogleHandoff = (code: string): Promise<AuthResponse> => {
+  if (pendingHandoff?.code === code) return pendingHandoff.promise;
+
+  const promise = authApi
+    .post<ApiResponse<AuthResponse> | AuthResponse>('/auth/google/exchange', { handoff: code })
+    .then((response) => unwrapAuthData(response.data));
+  pendingHandoff = { code, promise };
+  return promise;
+};
+
 export const authService = {
   async register(data: RegisterDto) {
     const response = await api.post<ApiResponse<AuthResponse>>('/auth/register', data);
@@ -119,7 +136,21 @@ export const authService = {
     return response.data.data;
   },
 
-  async completeGoogleLogin() {
+  /**
+   * Finishes a Google sign-in from the `handoff` code the API put on the
+   * `/login` return URL. It goes through `authApi`, like `startGoogleLogin`,
+   * whose response set the binding cookie this call needs.
+   */
+  async completeGoogleLogin(handoff?: string) {
+    if (handoff) {
+      const authResponse = await exchangeGoogleHandoff(handoff);
+      persistAuthResponse(authResponse);
+      return authResponse.user;
+    }
+
+    // Temporary: an API that predates the handoff exchange returns only
+    // `auth=success` and leaves the refresh cookie itself. Remove once the
+    // API with `/auth/google/exchange` is live everywhere.
     await this.refreshSessionFromCookies();
     const response = await api.get<ApiResponse<User>>('/profile');
     persistUser(response.data.data);
