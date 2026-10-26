@@ -13,6 +13,7 @@ import { useNearbyBranches } from '@/hooks/useNearbyBranches';
 import { TAG_FILTER_PARAM, readTagFilter, writeTagFilter } from '@/lib/tag-filters';
 import { SEARCH_PARAM, readSearchTerm } from '@/lib/search-text';
 import { portalService } from '@/services/portal.service';
+import { setSignupBranchId } from '@/lib/signup-branch';
 import type { PortalTagGroups } from '@/types/tag';
 import { MapPin, SearchX } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -58,6 +59,11 @@ export function HomeView() {
     enabled: location.isReady,
     onInvalidQuery: clearSearchAndFilters,
   });
+
+  // A sign-up started from the restaurant list belongs to no restaurant.
+  useEffect(() => {
+    setSignupBranchId(null);
+  }, []);
 
   useEffect(() => {
     portalService.getTags().then(setTagGroups).catch((error) => {

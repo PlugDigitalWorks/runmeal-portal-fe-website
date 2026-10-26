@@ -363,3 +363,14 @@ describe('<HomeView /> search', () => {
     expect(nav.router.push).not.toHaveBeenCalled();
   });
 });
+
+describe('<HomeView /> sign-up branch', () => {
+  it('forgets the restaurant a sign-up would record once the visitor is back on the list', async () => {
+    sessionStorage.setItem('runmeal_signup_branch_id', '5a6c5004-acad-4444-888e-61a6f9f8016b');
+
+    renderHome();
+
+    await screen.findByText('Restaurant a');
+    expect(sessionStorage.getItem('runmeal_signup_branch_id')).toBeNull();
+  });
+});

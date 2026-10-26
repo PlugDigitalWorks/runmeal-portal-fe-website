@@ -11,6 +11,7 @@ import { ProductList } from '@/components/products/ProductList';
 import { BranchStickyCart } from '@/components/branches/BranchStickyCart';
 import { TagBadgeList, TagToggle } from '@/components/tags/TagBadge';
 import { useBranch } from '@/context/BranchContext';
+import { setSignupBranchId } from '@/lib/signup-branch';
 import { buildMenuSections, collectProductTags, searchMenuProducts } from '@/lib/menu-tags';
 import { MAX_SEARCH_LENGTH, SEARCH_PARAM } from '@/lib/search-text';
 import { sortRestaurantTags, type Tag } from '@/types/tag';
@@ -42,6 +43,8 @@ export function BranchView({ branch, categories, products, tags = [] }: BranchVi
   // Set the selected branch when viewing this branch page
   useEffect(() => {
     setSelectedBranch(branch);
+    // A sign-up started from here records this restaurant.
+    setSignupBranchId(branch.id);
   }, [branch, setSelectedBranch]);
 
   const handleCategorySelect = useCallback((categoryId: string) => {

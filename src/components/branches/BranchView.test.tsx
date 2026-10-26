@@ -78,7 +78,7 @@ const restaurantTags: Tag[] = [
   { ...tag('burger', 'Burger', 'Burger'), kind: 'restaurant', group: 'cuisine' },
 ];
 
-const branch = { id: 'branch-1', name: 'Premium Burger Co', addressText: 'Street 1' } as Branch;
+const branch = { id: '7b1e2c3d-4a5b-4c6d-8e7f-901234567890', name: 'Premium Burger Co', addressText: 'Street 1' } as Branch;
 
 const renderMenu = () =>
   render(<BranchView branch={branch} categories={categories} products={products} tags={restaurantTags} />);
@@ -242,5 +242,15 @@ describe('<BranchView /> signed out', () => {
 
     await waitFor(() => expect(stable.cart.addToCart).toHaveBeenCalled());
     expect(stable.router.push).not.toHaveBeenCalled();
+  });
+});
+
+describe('<BranchView /> sign-up branch', () => {
+  it('marks this restaurant as where a sign-up starts', () => {
+    sessionStorage.clear();
+
+    renderMenu();
+
+    expect(sessionStorage.getItem('runmeal_signup_branch_id')).toBe(branch.id);
   });
 });
