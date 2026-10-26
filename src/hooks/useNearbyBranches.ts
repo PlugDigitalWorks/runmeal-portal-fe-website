@@ -10,14 +10,19 @@ import type { Branch } from '@/types/branch';
 const PAGE_SIZE = 20;
 
 interface Options {
+  /** Rounded coordinates; `null` lists restaurants around the default city. */
   location: { lat: number; lng: number } | null;
+  /** The search term, already 2-50 characters, or ''. */
+  q: string;
   tagIds: string[];
+  /** False while it is not yet known which location to search (no request). */
+  enabled: boolean;
   /**
-   * The API rejected the tag filter (`400 VALIDATION_FAILED`, e.g. more than
-   * ten ids or a non-id value). The caller drops it, which searches again
-   * without tags.
+   * The API rejected the query (`400 VALIDATION_FAILED`, e.g. a bad term or
+   * more than ten tag ids). The caller drops the term and the tag filters,
+   * which searches once more without them.
    */
-  onInvalidTags: () => void;
+  onInvalidQuery: () => void;
 }
 
 interface SearchState {
@@ -28,46 +33,46 @@ interface SearchState {
 }
 
 /**
- * The portal's nearby-restaurant search, paginated with "Load more". A new
- * location or tag filter starts again from page 1.
+ * The portal's restaurant search, paginated with "Load more". A new location,
+ * term or tag filter starts again from page 1.
  */
-export function useNearbyBranches({ location, tagIds, onInvalidTags }: Options) {
+export function useNearbyBranches({ location, q, tagIds, enabled, onInvalidQuery }: Options) {
   const lat = location?.lat;
   const lng = location?.lng;
   const tagKey = tagIds.join(',');
-  const key = lat === undefined || lng === undefined ? null : `${lat},${lng}|${tagKey}`;
+  const key = enabled ? JSON.stringify([lat ?? null, lng ?? null, q, tagKey]) : null;
 
   const [state, setState] = useState<SearchState>({ key: null, branches: [], meta: null });
   const [loadingMoreKey, setLoadingMoreKey] = useState<string | null>(null);
 
   const latestKey = useRef(key);
-  const onInvalidTagsRef = useRef(onInvalidTags);
+  const onInvalidQueryRef = useRef(onInvalidQuery);
   useEffect(() => {
     latestKey.current = key;
-    onInvalidTagsRef.current = onInvalidTags;
+    onInvalidQueryRef.current = onInvalidQuery;
   });
 
   const fetchPage = useCallback(
     (page: number) =>
       portalService.getNearbyBranches({
-        lat: lat as number,
-        lng: lng as number,
+        ...(lat !== undefined && lng !== undefined ? { lat, lng } : {}),
+        q,
         tagIds: tagKey ? tagKey.split(',') : [],
         page,
         limit: PAGE_SIZE,
       }),
-    [lat, lng, tagKey],
+    [lat, lng, q, tagKey],
   );
 
   const handleError = useCallback(
     (error: unknown) => {
-      if (tagKey && getApiErrorCode(error) === 'VALIDATION_FAILED') {
-        onInvalidTagsRef.current();
+      if ((q || tagKey) && getApiErrorCode(error) === 'VALIDATION_FAILED') {
+        onInvalidQueryRef.current();
       } else {
         console.error('Failed to fetch branches', error);
       }
     },
-    [tagKey],
+    [q, tagKey],
   );
 
   useEffect(() => {

@@ -1,11 +1,13 @@
 'use client';
 
+import { Suspense } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { useUser } from '@/context/UserContext';
 import { userService } from '@/services/user.service';
-import { AddressSearch } from '@/components/ui/AddressSearch';
 import { AddressSaveModal } from '@/components/address/AddressSaveModal';
+import { HeaderSearch } from '@/components/layout/HeaderSearch';
+import { AddressPickerDialog, LocationChip } from '@/components/location/AddressPicker';
 
 export function GlobalHeader() {
   const { user, addresses, refreshAddresses } = useUser();
@@ -40,10 +42,18 @@ export function GlobalHeader() {
             user={user} 
             addresses={addresses} 
             onAddressSelect={handleAddressChange} 
-            searchComponent={<AddressSearch />}
+            // The search term lives in the query string, which needs a Suspense boundary.
+            searchComponent={
+              <Suspense fallback={null}>
+                <HeaderSearch />
+              </Suspense>
+            }
+            // Signed-in users with saved addresses keep their address selector.
+            locationComponent={user && addresses.length > 0 ? undefined : <LocationChip className="max-w-[140px] md:max-w-[220px]" />}
         />
       </div>
       <AddressSaveModal />
+      <AddressPickerDialog />
     </>
   );
 }

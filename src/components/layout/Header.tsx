@@ -20,9 +20,11 @@ interface HeaderProps {
   addresses?: Address[];
   onAddressSelect?: (id: string) => void;
   searchComponent?: React.ReactNode;
+  /** The delivery address control shown beside the search. */
+  locationComponent?: React.ReactNode;
 }
 
-export function Header({ user, addresses = [], onAddressSelect, searchComponent }: HeaderProps) {
+export function Header({ user, addresses = [], onAddressSelect, searchComponent, locationComponent }: HeaderProps) {
   const router = useRouter();
   const { t } = useTranslation();
 
@@ -52,12 +54,13 @@ export function Header({ user, addresses = [], onAddressSelect, searchComponent 
         {/* Actions */}
         <div className="flex items-center gap-2 sm:gap-4 flex-1 justify-end">
           
-          {/* Search Component - Always visible on desktop if provided, or could be conditional */}
+          {/* Search and delivery address; on small screens they move to the row below. */}
           {searchComponent && (
              <div className="flex-1 max-w-xl mx-4 hidden md:block">
                  {searchComponent}
              </div>
           )}
+          {locationComponent && <div className="hidden md:flex min-w-0">{locationComponent}</div>}
 
           {user ? (
             <>
@@ -112,6 +115,13 @@ export function Header({ user, addresses = [], onAddressSelect, searchComponent 
         </div>
       </div>
       
+      {searchComponent && (
+          <div className="md:hidden border-t border-zinc-100 bg-white/95 backdrop-blur-sm px-4 py-2 flex items-center gap-2">
+              <div className="flex-1 min-w-0">{searchComponent}</div>
+              {locationComponent}
+          </div>
+      )}
+
       {/* Mobile Address Selector */}
       {user && addresses.length > 0 && (
           <div className="md:hidden border-t border-zinc-100 bg-white/95 backdrop-blur-sm px-4 py-3 flex items-center gap-3">

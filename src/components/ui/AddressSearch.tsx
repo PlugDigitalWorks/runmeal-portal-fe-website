@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMapsLibrary } from '@vis.gl/react-google-maps';
 import { useUser } from '@/context/UserContext';
-import { useRouter } from 'next/navigation';
 import { Search, MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from 'react-i18next';
@@ -47,7 +46,13 @@ type AddressPrediction = {
   prediction: PlacePrediction;
 };
 
-export function AddressSearch() {
+interface AddressSearchProps {
+  /** Called once an address is chosen, e.g. to close the picker. */
+  onSelected?: () => void;
+  autoFocus?: boolean;
+}
+
+export function AddressSearch({ onSelected, autoFocus }: AddressSearchProps) {
   const { t } = useTranslation();
   const [inputValue, setInputValue] = useState('');
   const placesLib = useMapsLibrary('places') as PlacesLibrary | null;
@@ -56,7 +61,6 @@ export function AddressSearch() {
   const [predictions, setPredictions] = useState<AddressPrediction[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const { setTempAddress } = useUser();
-  const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -84,7 +88,8 @@ export function AddressSearch() {
 
       const { suggestions } = await placesLib.AutocompleteSuggestion.fetchAutocompleteSuggestions({
           input: value,
-          includedRegionCodes: ['tr'],
+          // The portal lists restaurants in Türkiye and the UK.
+          includedRegionCodes: ['tr', 'gb'],
           sessionToken: sessionTokenRef.current,
       });
 
@@ -148,14 +153,14 @@ export function AddressSearch() {
           setPredictions([]);
           setIsOpen(false);
           sessionTokenRef.current = placesLib ? new placesLib.AutocompleteSessionToken() : null;
-          router.push('/');
+          onSelected?.();
       } catch (error) {
           console.warn('Place details fetch failed', error);
       }
   };
 
   return (
-    <div className="relative w-full max-w-md hidden md:block" ref={containerRef}>
+    <div className="relative w-full" ref={containerRef}>
       <div className="relative">
         <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
         <Input 
@@ -164,6 +169,8 @@ export function AddressSearch() {
             value={inputValue}
             onChange={handleInputChange}
             onFocus={() => predictions.length > 0 && setIsOpen(true)}
+            autoFocus={autoFocus}
+            aria-label={t('common.searchAddress')}
         />
       </div>
 

@@ -285,7 +285,8 @@
       "requestAgain": "Request Again",
       "missingToken": "Invalid or missing reset token.",
       "loading": "Loading..."
-    }
+    },
+    "signInForBasket": "Sign in to see your basket and order. Your item is kept."
   },
   "profile": {
     "personalInfo": "Personal Info",
@@ -588,8 +589,6 @@
     "active": "(Active)",
     "temporary": "(Temporary)",
     "nearbyRestaurants": "Nearby Restaurants",
-    "metersAway": "{{distance}}m away",
-    "kmAway": "{{distance}}km away",
     "noRestaurants": "No restaurants found nearby",
     "noRestaurantsHelp": "We currently don't have any branches serving your location. Try changing your address.",
     "cuisines": "Cuisines",
@@ -605,7 +604,11 @@
     "hasDishes": "Has {{tags}} dishes",
     "noMatches": "No restaurants match all selected filters.",
     "clearAllFilters": "Clear filters",
-    "loadMore": "Load more"
+    "loadMore": "Load more",
+    "resultsCount_one": "{{count}} restaurant found",
+    "resultsCount_other": "{{count}} restaurants found",
+    "noResultsForTerm": "No restaurants found for \"{{term}}\".",
+    "clearSearchAndFilters": "Clear search and filters"
   },
   "orders": {
     "back": "Back",
@@ -822,6 +825,27 @@
     }
   },
   "menu": {
-    "quickFilters": "Filter dishes"
+    "quickFilters": "Filter dishes",
+    "searchPlaceholder": "Search the menu",
+    "clearSearch": "Clear search",
+    "searchMatches": "Matches for \"{{term}}\"",
+    "showWholeMenu": "Show the whole menu",
+    "noSearchMatches": "Nothing on the menu matches \"{{term}}\", so the whole menu is shown."
+  },
+  "search": {
+    "placeholder": "Search dishes, cuisines or restaurants",
+    "clear": "Clear search"
+  },
+  "location": {
+    "prompt": "Share your location to see restaurants that deliver to you.",
+    "promptLabel": "Your location",
+    "share": "Share location",
+    "notNow": "Not now",
+    "defaultCityBanner": "Showing restaurants in London. Choose your address to see who delivers to you.",
+    "defaultCity": "London",
+    "currentLocation": "Current location",
+    "chooseAddress": "Choose address",
+    "pickerTitle": "Choose your delivery address",
+    "pickerDescription": "We'll show the restaurants that deliver there."
   }
 }

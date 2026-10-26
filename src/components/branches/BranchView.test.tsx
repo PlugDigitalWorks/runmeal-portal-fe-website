@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Branch } from '@/types/branch';
@@ -14,13 +14,21 @@ const stable = vi.hoisted(() => ({
   },
   branchContext: { selectedBranch: null, setSelectedBranch: vi.fn() },
   cart: { addToCart: vi.fn() },
+  searchParams: new URLSearchParams(),
+  router: { push: vi.fn(), replace: vi.fn() },
+  userContext: { user: null as null | { id: string } },
 }));
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => stable.translation,
   initReactI18next: { type: '3rdParty', init: () => {} },
 }));
-vi.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }));
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => stable.searchParams,
+  useRouter: () => stable.router,
+}));
+vi.mock('@/context/UserContext', () => ({ useUser: () => stable.userContext }));
+vi.mock('sonner', () => ({ toast: { info: vi.fn(), success: vi.fn(), error: vi.fn() } }));
 vi.mock('@/context/BranchContext', () => ({ useBranch: () => stable.branchContext }));
 vi.mock('@/context/CartContext', () => ({ useCart: () => stable.cart }));
 vi.mock('@/components/branches/BranchStickyCart', () => ({ BranchStickyCart: () => null }));
@@ -82,6 +90,8 @@ const badgeTexts = (container: HTMLElement) =>
 describe('<BranchView /> menu tags', () => {
   beforeEach(() => {
     stable.translation.i18n.resolvedLanguage = 'en';
+    stable.searchParams = new URLSearchParams();
+    stable.userContext.user = null;
   });
 
   it('shows product tags, own and inherited, as badges on the cards', () => {
@@ -159,5 +169,78 @@ describe('<BranchView /> menu tags', () => {
 
     const detail = screen.getByRole('heading', { level: 2, name: 'Product garden' }).parentElement as HTMLElement;
     expect(badgeTexts(detail)).toEqual(['Vegan', 'Spicy', 'Gluten-free', 'Nut-free']);
+  });
+});
+
+describe('<BranchView /> menu search', () => {
+  beforeEach(() => {
+    stable.translation.i18n.resolvedLanguage = 'en';
+    stable.userContext.user = null;
+  });
+
+  it('opens with the portal search term and shows the matching dishes first', () => {
+    stable.searchParams = new URLSearchParams('q=GARDEN');
+
+    renderMenu();
+
+    expect(screen.getByRole('searchbox', { name: 'menu.searchPlaceholder' })).toHaveValue('GARDEN');
+    const matches = screen.getByRole('region', { name: 'menu.searchMatches' });
+    expect(within(matches).getByText('Product garden')).toBeInTheDocument();
+    expect(within(matches).queryByText('Product beef')).not.toBeInTheDocument();
+    // The whole menu still follows.
+    expect(within(section('Burgers')).getByText('Product beef')).toBeInTheDocument();
+  });
+
+  it('matches category and tag names, ignoring case and accents', () => {
+    stable.searchParams = new URLSearchParams('q=acili');
+    stable.translation.i18n.resolvedLanguage = 'tr';
+
+    renderMenu();
+
+    const matches = screen.getByRole('region', { name: 'menu.searchMatches' });
+    expect(within(matches).getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual([
+      'Product beef',
+      'Product garden',
+    ]);
+  });
+
+  it('shows the whole menu when nothing matches, and clears back to it', () => {
+    stable.searchParams = new URLSearchParams('q=sushi');
+
+    renderMenu();
+
+    expect(screen.queryByRole('region', { name: 'menu.searchMatches' })).not.toBeInTheDocument();
+    expect(screen.getByText('Product cola')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'menu.clearSearch' }));
+    expect(screen.getByRole('searchbox', { name: 'menu.searchPlaceholder' })).toHaveValue('');
+  });
+});
+
+describe('<BranchView /> signed out', () => {
+  it('asks to sign in on adding to the basket, keeps the item and comes back here', async () => {
+    stable.userContext.user = null;
+    window.history.replaceState(null, '', '/brand/branch?q=garden');
+
+    renderMenu();
+    const garden = screen.getAllByText('Product garden')[0].closest('div.group') as HTMLElement;
+    fireEvent.click(within(garden).getByRole('button'));
+    fireEvent.click(await screen.findByRole('button', { name: 'product.addToCart' }));
+
+    await waitFor(() => expect(stable.router.push).toHaveBeenCalledWith('/login'));
+    expect(stable.cart.addToCart).toHaveBeenCalled();
+    expect(sessionStorage.getItem('runmeal_return_path')).toBe('/brand/branch?q=garden');
+  });
+
+  it('adds straight to the basket when signed in', async () => {
+    stable.userContext.user = { id: 'u-1' };
+    stable.searchParams = new URLSearchParams();
+
+    renderMenu();
+    const beef = screen.getByText('Product beef').closest('div.group') as HTMLElement;
+    fireEvent.click(within(beef).getByRole('button'));
+    fireEvent.click(await screen.findByRole('button', { name: 'product.addToCart' }));
+
+    await waitFor(() => expect(stable.cart.addToCart).toHaveBeenCalled());
+    expect(stable.router.push).not.toHaveBeenCalled();
   });
 });

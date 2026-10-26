@@ -285,7 +285,8 @@
       "requestAgain": "Tekrar Talep Et",
       "missingToken": "Geçersiz veya eksik sıfırlama anahtarı.",
       "loading": "Yükleniyor..."
-    }
+    },
+    "signInForBasket": "Sepetinizi görmek ve sipariş vermek için giriş yapın. Ürününüz saklanıyor."
   },
   "profile": {
     "personalInfo": "Kişisel Bilgiler",
@@ -588,8 +589,6 @@
     "active": "(Aktif)",
     "temporary": "(Geçici)",
     "nearbyRestaurants": "Yakındaki Restoranlar",
-    "metersAway": "{{distance}}m uzakta",
-    "kmAway": "{{distance}}km uzakta",
     "noRestaurants": "Yakında restoran bulunamadı",
     "noRestaurantsHelp": "Şu anda bulunduğunuz konuma hizmet veren şube yok. Adresinizi değiştirmeyi deneyin.",
     "cuisines": "Mutfaklar",
@@ -605,7 +604,11 @@
     "hasDishes": "{{tags}} yemekleri var",
     "noMatches": "Seçilen tüm filtrelere uyan restoran yok.",
     "clearAllFilters": "Filtreleri temizle",
-    "loadMore": "Daha fazla yükle"
+    "loadMore": "Daha fazla yükle",
+    "resultsCount_one": "{{count}} restoran bulundu",
+    "resultsCount_other": "{{count}} restoran bulundu",
+    "noResultsForTerm": "\"{{term}}\" için restoran bulunamadı.",
+    "clearSearchAndFilters": "Aramayı ve filtreleri temizle"
   },
   "orders": {
     "back": "Geri",
@@ -822,6 +825,27 @@
     }
   },
   "menu": {
-    "quickFilters": "Yemekleri filtrele"
+    "quickFilters": "Yemekleri filtrele",
+    "searchPlaceholder": "Menüde ara",
+    "clearSearch": "Aramayı temizle",
+    "searchMatches": "\"{{term}}\" için sonuçlar",
+    "showWholeMenu": "Tüm menüyü göster",
+    "noSearchMatches": "Menüde \"{{term}}\" ile eşleşen ürün yok, tüm menü gösteriliyor."
+  },
+  "search": {
+    "placeholder": "Yemek, mutfak veya restoran arayın",
+    "clear": "Aramayı temizle"
+  },
+  "location": {
+    "prompt": "Size teslimat yapan restoranları görmek için konumunuzu paylaşın.",
+    "promptLabel": "Konumunuz",
+    "share": "Konumu paylaş",
+    "notNow": "Şimdi değil",
+    "defaultCityBanner": "Londra'daki restoranlar gösteriliyor. Size teslimat yapanları görmek için adresinizi seçin.",
+    "defaultCity": "Londra",
+    "currentLocation": "Mevcut konum",
+    "chooseAddress": "Adres seç",
+    "pickerTitle": "Teslimat adresinizi seçin",
+    "pickerDescription": "Oraya teslimat yapan restoranları göstereceğiz."
   }
 }

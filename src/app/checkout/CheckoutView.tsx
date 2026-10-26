@@ -16,6 +16,7 @@ import { walletService, WalletBalance } from '@/services/wallet.service';
 import { branchService } from '@/services/branch.service';
 import { AddressForm, AddressFormValues } from '@/components/address/AddressForm';
 import { formatAddressFirstLine } from '@/lib/address-lines';
+import { rememberReturnPath } from '@/lib/return-path';
 import { CartPromotions } from '@/components/cart/CartPromotions';
 import { FulfillmentSlotPicker } from '@/components/checkout/FulfillmentSlotPicker';
 import type { Address } from '@/types/address';
@@ -466,7 +467,19 @@ export default function CheckoutView() {
 
 
     if (!user) {
-        return <div className="p-8 text-center">{t('checkout.loginRequired')}</div>;
+        return (
+            <div className="p-8 text-center space-y-4">
+                <p>{t('checkout.loginRequired')}</p>
+                <Button
+                    onClick={() => {
+                        rememberReturnPath();
+                        router.push('/login');
+                    }}
+                >
+                    {t('header.signIn')}
+                </Button>
+            </div>
+        );
     }
 
     /**

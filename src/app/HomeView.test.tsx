@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { portalService } from '@/services/portal.service';
 import type { Branch } from '@/types/branch';
 import type { PortalTagGroups, Tag } from '@/types/tag';
+import { LocationProvider } from '@/context/LocationContext';
+import { browserLocationStore } from '@/lib/browser-location-store';
 import { HomeView } from './HomeView';
 
 /** A query string the mocked router writes and `useSearchParams` reads back. */
@@ -42,9 +44,13 @@ const stable = vi.hoisted(() => ({
     user: null,
     addresses: [],
     isLoading: false,
-    tempAddress: { location: { latitude: 41.04, longitude: 28.99 }, formattedAddress: 'Kadıköy' },
+    tempAddress: { location: { latitude: 41.04, longitude: 28.99 }, formattedAddress: 'Kadıköy' } as
+      | { location: { latitude: number; longitude: number }; formattedAddress: string }
+      | null,
   },
 }));
+
+const KADIKOY = { location: { latitude: 41.04, longitude: 28.99 }, formattedAddress: 'Kadıköy' };
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => stable.translation,
@@ -86,25 +92,35 @@ const page = (items: Branch[], current = 1, totalPages = 1) => ({
 
 const lastSearch = () => mockedPortal.getNearbyBranches.mock.calls.at(-1)?.[0];
 
-describe('<HomeView /> tag filters', () => {
-  beforeEach(() => {
-    nav.set('');
-    nav.router.replace.mockImplementation((url: string) => nav.set(url.split('?')[1] ?? ''));
-    mockedPortal.getTags.mockResolvedValue(tagGroups);
-    mockedPortal.getNearbyBranches.mockResolvedValue(page([branch('a')]));
-  });
+const renderHome = () =>
+  render(
+    <LocationProvider>
+      <HomeView />
+    </LocationProvider>,
+  );
 
+beforeEach(() => {
+  nav.set('');
+  nav.router.replace.mockImplementation((url: string) => nav.set(url.split('?')[1] ?? ''));
+  stable.user.tempAddress = KADIKOY;
+  stable.translation.i18n.resolvedLanguage = 'en';
+  browserLocationStore.reset();
+  mockedPortal.getTags.mockResolvedValue(tagGroups);
+  mockedPortal.getNearbyBranches.mockResolvedValue(page([branch('a')]));
+});
+
+describe('<HomeView /> tag filters', () => {
   it('sends the tags selected in the URL as one filter every restaurant must match', async () => {
     nav.set('tags=t-burger,t-vegan');
 
-    render(<HomeView />);
+    renderHome();
 
     await waitFor(() => expect(mockedPortal.getNearbyBranches).toHaveBeenCalled());
-    expect(lastSearch()).toEqual({ lat: 41.04, lng: 28.99, tagIds: ['t-burger', 't-vegan'], page: 1, limit: 20 });
+    expect(lastSearch()).toEqual({ lat: 41.04, lng: 28.99, q: '', tagIds: ['t-burger', 't-vegan'], page: 1, limit: 20 });
   });
 
   it('keeps the selection in the URL and restores it as removable chips', async () => {
-    render(<HomeView />);
+    renderHome();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Burger', pressed: false }));
 
@@ -123,7 +139,7 @@ describe('<HomeView /> tag filters', () => {
     nav.set('tags=t-vegan,t-gluten-free');
     mockedPortal.getNearbyBranches.mockResolvedValue(page([]));
 
-    render(<HomeView />);
+    renderHome();
 
     expect(await screen.findByText('home.noMatches')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'home.clearAllFilters' }));
@@ -137,7 +153,7 @@ describe('<HomeView /> tag filters', () => {
       .mockResolvedValueOnce(page([branch('b')], 2, 2))
       .mockResolvedValue(page([branch('c')], 1, 1));
 
-    render(<HomeView />);
+    renderHome();
 
     fireEvent.click(await screen.findByRole('button', { name: 'home.loadMore' }));
     expect(await screen.findByText('Restaurant b')).toBeInTheDocument();
@@ -158,7 +174,7 @@ describe('<HomeView /> tag filters', () => {
       .mockRejectedValueOnce({ response: { status: 400, data: { status: false, code: 'VALIDATION_FAILED' } } })
       .mockResolvedValue(page([branch('a')]));
 
-    render(<HomeView />);
+    renderHome();
 
     expect(await screen.findByText('Restaurant a')).toBeInTheDocument();
     expect(nav.router.replace).toHaveBeenCalledWith('/', { scroll: false });
@@ -170,7 +186,7 @@ describe('<HomeView /> tag filters', () => {
     nav.set('tags=t-vegan');
     mockedPortal.getNearbyBranches.mockResolvedValue(page([branch('a', [terrace, kids, burger, pizza])]));
 
-    render(<HomeView />);
+    renderHome();
 
     const card = (await screen.findByText('Restaurant a')).closest('a') as HTMLElement;
     expect(within(card).getAllByTestId('tag-badge').map((el) => el.textContent)).toEqual([
@@ -179,7 +195,7 @@ describe('<HomeView /> tag filters', () => {
       'Terrace',
     ]);
     expect(within(card).getByText('home.hasDishes {"tags":"vegan"}')).toBeInTheDocument();
-    expect(within(card).getByText('home.kmAway {"distance":"1.5"}')).toBeInTheDocument();
+    expect(within(card).getByText('1.5 km')).toBeInTheDocument();
   });
 
   it('renders tag names as text, never as HTML', async () => {
@@ -187,10 +203,163 @@ describe('<HomeView /> tag filters', () => {
     mockedPortal.getTags.mockResolvedValue({ cuisine: [sneaky], feature: [], product: [] });
 
     await act(async () => {
-      render(<HomeView />);
+      renderHome();
     });
 
     expect(await screen.findByText('<img src=x onerror=alert(1)>')).toBeInTheDocument();
     expect(document.querySelector('img[src="x"]')).toBeNull();
+  });
+});
+
+describe('<HomeView /> location', () => {
+  const geolocation = { getCurrentPosition: vi.fn() };
+
+  beforeEach(() => {
+    stable.user.tempAddress = null;
+    Object.defineProperty(navigator, 'geolocation', { configurable: true, value: geolocation });
+  });
+
+  it('loads restaurants around the default city at once, without coordinates', async () => {
+    renderHome();
+
+    expect(await screen.findByText('Restaurant a')).toBeInTheDocument();
+    expect(lastSearch()).not.toHaveProperty('lat');
+    expect(lastSearch()).not.toHaveProperty('lng');
+    // Asked once, with the reason; the list does not wait for the answer.
+    expect(screen.getByText('location.prompt')).toBeInTheDocument();
+    expect(geolocation.getCurrentPosition).not.toHaveBeenCalled();
+  });
+
+  it('shows the default-city banner after a decline, with the address picker', async () => {
+    renderHome();
+    fireEvent.click(await screen.findByRole('button', { name: 'location.notNow' }));
+
+    expect(screen.getByText('location.defaultCityBanner')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'location.chooseAddress' })).toBeInTheDocument();
+    expect(screen.queryByText('location.prompt')).not.toBeInTheDocument();
+    expect(lastSearch()).not.toHaveProperty('lat');
+  });
+
+  it('treats a browser refusal as a decline and never asks again this session', async () => {
+    geolocation.getCurrentPosition.mockImplementation((_ok, fail) => fail({ code: 1 }));
+    const first = renderHome();
+    fireEvent.click(await screen.findByRole('button', { name: 'location.share' }));
+
+    expect(await screen.findByText('location.defaultCityBanner')).toBeInTheDocument();
+    first.unmount();
+
+    renderHome();
+    expect(await screen.findByText('location.defaultCityBanner')).toBeInTheDocument();
+    expect(screen.queryByText('location.prompt')).not.toBeInTheDocument();
+    expect(geolocation.getCurrentPosition).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends a granted location rounded to 3 decimals and hides the banner', async () => {
+    geolocation.getCurrentPosition.mockImplementation((ok) =>
+      ok({ coords: { latitude: 41.0479769, longitude: 28.9966068 } }),
+    );
+    renderHome();
+    fireEvent.click(await screen.findByRole('button', { name: 'location.share' }));
+
+    await waitFor(() => expect(lastSearch()).toMatchObject({ lat: 41.048, lng: 28.997, page: 1 }));
+    expect(screen.queryByText('location.defaultCityBanner')).not.toBeInTheDocument();
+    expect(screen.queryByText('location.prompt')).not.toBeInTheDocument();
+  });
+
+  it('sends a chosen address rounded too', async () => {
+    stable.user.tempAddress = { location: { latitude: 51.4613456, longitude: -0.3037891 }, formattedAddress: 'Richmond' };
+
+    renderHome();
+
+    await waitFor(() => expect(lastSearch()).toMatchObject({ lat: 51.461, lng: -0.304 }));
+    expect(screen.queryByText('location.prompt')).not.toBeInTheDocument();
+  });
+
+  it('shows distance only when the visitor gave a location, formatted per language', async () => {
+    mockedPortal.getNearbyBranches.mockResolvedValue(page([branch('a')]));
+    browserLocationStore.decline();
+    const withoutLocation = renderHome();
+    const card = (await screen.findByText('Restaurant a')).closest('a') as HTMLElement;
+    expect(within(card).queryByText(/km|m$/)).not.toBeInTheDocument();
+    withoutLocation.unmount();
+
+    stable.user.tempAddress = KADIKOY;
+    stable.translation.i18n.resolvedLanguage = 'tr';
+    renderHome();
+    const located = (await screen.findByText('Restaurant a')).closest('a') as HTMLElement;
+    expect(within(located).getByText('1,5 km')).toBeInTheDocument();
+  });
+});
+
+describe('<HomeView /> search', () => {
+  it('searches with the term from the URL and shows the result count', async () => {
+    nav.set('q=d%C3%B6ner&tags=t-burger');
+    mockedPortal.getNearbyBranches.mockResolvedValue({
+      data: [branch('a')],
+      meta: { total: 42, page: 1, limit: 20, totalPages: 3 },
+    });
+
+    renderHome();
+
+    await waitFor(() => expect(lastSearch()).toMatchObject({ q: 'döner', tagIds: ['t-burger'], page: 1 }));
+    expect(await screen.findByText('home.resultsCount {"count":42}')).toBeInTheDocument();
+  });
+
+  it('opens a restaurant with the search term', async () => {
+    nav.set('q=cig kofte');
+
+    renderHome();
+
+    const card = (await screen.findByText('Restaurant a')).closest('a') as HTMLElement;
+    expect(card).toHaveAttribute('href', '/brand/a?q=cig+kofte');
+  });
+
+  it('goes back to page 1 when the term changes', async () => {
+    mockedPortal.getNearbyBranches
+      .mockResolvedValueOnce(page([branch('a')], 1, 2))
+      .mockResolvedValueOnce(page([branch('b')], 2, 2))
+      .mockResolvedValue(page([branch('c')], 1, 1));
+    renderHome();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'home.loadMore' }));
+    expect(await screen.findByText('Restaurant b')).toBeInTheDocument();
+
+    act(() => nav.set('q=pizza'));
+
+    await waitFor(() => expect(lastSearch()).toMatchObject({ q: 'pizza', page: 1 }));
+    expect(await screen.findByText('Restaurant c')).toBeInTheDocument();
+  });
+
+  it('names the term when nothing is found and clears the search and filters', async () => {
+    nav.set('q=sushi&tags=t-vegan&utm=mail');
+    mockedPortal.getNearbyBranches.mockResolvedValue(page([]));
+
+    renderHome();
+
+    expect(await screen.findByText('home.noResultsForTerm {"term":"sushi"}')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'home.clearSearchAndFilters' }));
+    expect(nav.router.replace).toHaveBeenLastCalledWith('/?utm=mail', { scroll: false });
+  });
+
+  it('drops the term and filters and searches once more without them on VALIDATION_FAILED', async () => {
+    nav.set('q=ab&tags=t-vegan');
+    mockedPortal.getNearbyBranches
+      .mockRejectedValueOnce({ response: { status: 400, data: { code: 'VALIDATION_FAILED' } } })
+      .mockResolvedValue(page([branch('a')]));
+
+    renderHome();
+
+    expect(await screen.findByText('Restaurant a')).toBeInTheDocument();
+    expect(mockedPortal.getNearbyBranches).toHaveBeenCalledTimes(2);
+    expect(mockedPortal.getNearbyBranches.mock.calls[1][0]).toMatchObject({ q: '', tagIds: [] });
+  });
+
+  it('works signed out: no redirect, the list loads', async () => {
+    stable.user.tempAddress = null;
+
+    renderHome();
+
+    expect(await screen.findByText('Restaurant a')).toBeInTheDocument();
+    expect(nav.router.push).not.toHaveBeenCalled();
   });
 });

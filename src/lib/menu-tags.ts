@@ -1,3 +1,4 @@
+import { matchesSearch } from '@/lib/search-text';
 import type { Category } from '@/types/category';
 import type { Product } from '@/types/product';
 import type { Tag } from '@/types/tag';
@@ -45,4 +46,27 @@ export function buildMenuSections(
       ),
     }))
     .filter((section) => section.products.length > 0);
+}
+
+/**
+ * Products matching a menu search, in menu order: by name, category name or
+ * tag name, ignoring case and accents (the same folding as the portal search).
+ */
+export function searchMenuProducts(
+  categories: Category[],
+  products: Product[],
+  term: string,
+  { tagId }: { tagId?: string } = {},
+): Product[] {
+  if (!term.trim()) return [];
+  const categoryNames = new Map(categories.map((category) => [category.id, category.name]));
+  return buildMenuSections(categories, products, { tagId })
+    .flatMap((section) => section.products)
+    .filter((product) =>
+      matchesSearch(term, [
+        product.name,
+        categoryNames.get(product.categoryId),
+        ...(product.tags ?? []).flatMap((tag) => [tag.name?.tr, tag.name?.en]),
+      ]),
+    );
 }

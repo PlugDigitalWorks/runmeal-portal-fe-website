@@ -6,9 +6,12 @@ import Image from 'next/image';
 import { useUser } from '@/context/UserContext';
 import { BranchCard } from '@/components/home/BranchCard';
 import { TagFilters } from '@/components/home/TagFilters';
+import { LocationNotice } from '@/components/location/LocationNotice';
+import { useSearchLocation } from '@/context/LocationContext';
 import { Button } from '@/components/ui/button';
 import { useNearbyBranches } from '@/hooks/useNearbyBranches';
-import { readTagFilter, writeTagFilter } from '@/lib/tag-filters';
+import { TAG_FILTER_PARAM, readTagFilter, writeTagFilter } from '@/lib/tag-filters';
+import { SEARCH_PARAM, readSearchTerm } from '@/lib/search-text';
 import { portalService } from '@/services/portal.service';
 import type { PortalTagGroups } from '@/types/tag';
 import { MapPin, SearchX } from 'lucide-react';
@@ -28,28 +31,32 @@ export function HomeView() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { user, addresses, isLoading: isContextLoading, tempAddress } = useUser();
+  const location = useSearchLocation();
   const [tagGroups, setTagGroups] = useState<PortalTagGroups | null>(null);
 
-  const activeAddress = addresses.find(a => a.isActive);
+  const activeAddress = user ? addresses.find(a => a.isActive) : undefined;
   const selectedTagIds = readTagFilter(searchParams);
+  const searchTerm = readSearchTerm(searchParams);
 
-  // Selected tags stay in the URL so a filtered list can be shared and reloaded.
-  const setSelectedTagIds = (tagIds: string[]) => {
-    const query = writeTagFilter(searchParams.toString(), tagIds);
+  // The term and the selected tags stay in the URL so a search can be shared and reloaded.
+  const replaceQuery = (query: string) =>
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  const setSelectedTagIds = (tagIds: string[]) => replaceQuery(writeTagFilter(searchParams.toString(), tagIds));
+  const clearSearchAndFilters = () => {
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete(SEARCH_PARAM);
+    next.delete(TAG_FILTER_PARAM);
+    replaceQuery(next.toString());
   };
 
-  // Browsing prefers the temporary address over the saved active one.
-  const location = tempAddress
-    ? { lat: tempAddress.location.latitude, lng: tempAddress.location.longitude }
-    : activeAddress
-      ? { lat: activeAddress.latitude, lng: activeAddress.longitude }
-      : null;
-
-  const { branches, isLoading: isLoadingBranches, isLoadingMore, hasMore, loadMore } = useNearbyBranches({
-    location: isContextLoading ? null : location,
+  const { branches, meta, isLoading: isLoadingBranches, isLoadingMore, hasMore, loadMore } = useNearbyBranches({
+    location: location.coords,
+    q: searchTerm,
     tagIds: selectedTagIds,
-    onInvalidTags: () => setSelectedTagIds([]),
+    // Without a location the default city loads at once; a location that
+    // arrives later replaces it.
+    enabled: location.isReady,
+    onInvalidQuery: clearSearchAndFilters,
   });
 
   useEffect(() => {
@@ -57,15 +64,6 @@ export function HomeView() {
       console.error('Failed to fetch tags', error);
     });
   }, []);
-
-  useEffect(() => {
-    if (isContextLoading) return;
-
-    // Logged in but no addresses AND no temp address?
-    if (user && addresses.length === 0 && !tempAddress) {
-        router.push('/profile?action=new');
-    }
-  }, [user, addresses, isContextLoading, router, tempAddress]);
 
   const selectedProductTags = tagGroups?.product.filter(tag => selectedTagIds.includes(tag.id)) ?? [];
 
@@ -112,10 +110,17 @@ export function HomeView() {
         {/* Branches Section */}
         <section className="container mx-auto px-4 py-12">
             <h2 className="text-2xl font-bold text-zinc-900 mb-6">{t('home.nearbyRestaurants')}</h2>
-            {location && tagGroups && (
+            <LocationNotice location={location} />
+            {tagGroups && (
                 <TagFilters tags={tagGroups} selectedIds={selectedTagIds} onChange={setSelectedTagIds} />
             )}
-            
+            {!isLoadingBranches && meta && meta.total > 0 && (
+                <p role="status" className="mb-4 text-sm text-zinc-500">
+                    {t('home.resultsCount', { count: meta.total })}
+                </p>
+            )}
+
+
             {isLoadingBranches ? (
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {[1,2,3].map(i => (
@@ -126,7 +131,13 @@ export function HomeView() {
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {branches.map(branch => (
-                            <BranchCard key={branch.id} branch={branch} productTags={selectedProductTags} />
+                            <BranchCard
+                                key={branch.id}
+                                branch={branch}
+                                productTags={selectedProductTags}
+                                showDistance={!!location.coords}
+                                searchTerm={searchTerm}
+                            />
                         ))}
                     </div>
                     {hasMore && (
@@ -137,6 +148,16 @@ export function HomeView() {
                         </div>
                     )}
                 </>
+            ) : searchTerm ? (
+                <div className="text-center py-20 bg-white rounded-xl border border-dashed border-zinc-300">
+                    <div className="mx-auto w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mb-4">
+                        <SearchX className="h-8 w-8 text-zinc-400" />
+                    </div>
+                    <h3 className="text-lg font-medium text-zinc-900">{t('home.noResultsForTerm', { term: searchTerm })}</h3>
+                    <Button variant="outline" size="sm" className="mt-4" onClick={clearSearchAndFilters}>
+                        {t('home.clearSearchAndFilters')}
+                    </Button>
+                </div>
             ) : selectedTagIds.length > 0 ? (
                 <div className="text-center py-20 bg-white rounded-xl border border-dashed border-zinc-300">
                     <div className="mx-auto w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mb-4">

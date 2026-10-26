@@ -4,8 +4,11 @@ import type { Branch } from '@/types/branch';
 import type { PortalTagGroups } from '@/types/tag';
 
 export interface PortalNearbyQuery {
-  lat: number;
-  lng: number;
+  /** Together or not at all; without them the API lists the default city. */
+  lat?: number;
+  lng?: number;
+  /** Restaurant, brand, tag, dish or category name; 2-50 characters. */
+  q?: string;
   /** Every one must match; sent comma-separated, at most 10. */
   tagIds?: string[];
   page?: number;
@@ -30,12 +33,15 @@ export const portalService = {
     return tagsRequest;
   },
 
-  /** Restaurants of every brand delivering to the point, nearest first. */
-  async getNearbyBranches({ lat, lng, tagIds, page = 1, limit = 20 }: PortalNearbyQuery) {
+  /**
+   * Restaurants of every brand delivering to the point, nearest first; without
+   * a point, those around the default city with no delivery check.
+   */
+  async getNearbyBranches({ lat, lng, q, tagIds, page = 1, limit = 20 }: PortalNearbyQuery) {
     const response = await api.get<ApiResponse<{ data: Branch[]; meta: PaginationMeta }>>('/portal/branches/nearby', {
       params: {
-        lat,
-        lng,
+        ...(lat !== undefined && lng !== undefined ? { lat, lng } : {}),
+        ...(q ? { q } : {}),
         ...(tagIds?.length ? { tagIds: tagIds.join(',') } : {}),
         page,
         limit,

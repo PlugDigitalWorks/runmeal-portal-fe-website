@@ -13,6 +13,7 @@ import { RUNMEAL_LOGO } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { authService } from '@/services/auth.service';
+import { takeReturnPath } from '@/lib/return-path';
 import { GoogleAuthButton } from '@/components/auth/GoogleAuthButton';
 import { OtpChallenge } from '@/components/auth/OtpChallenge';
 import { RecaptchaWidget } from '@/components/auth/RecaptchaWidget';
@@ -63,7 +64,7 @@ export default function LoginPage() {
         toast.success(t('auth.otp.sent'));
       } else {
         await authService.login({ email: data.email, password: data.password, recaptchaToken: recaptchaToken ?? undefined });
-        router.push('/');
+        router.push(takeReturnPath());
         router.refresh();
       }
     } catch (requestError) {
@@ -81,7 +82,7 @@ export default function LoginPage() {
     try {
       await authService.verifyOtp({ email: sentEmail, code });
       toast.success(t('auth.otp.success'));
-      router.push('/');
+      router.push(takeReturnPath());
       router.refresh();
     } catch (verifyError) {
       setError(resolveApiErrorMessage(verifyError, t('auth.validation.generic')));
@@ -122,7 +123,7 @@ export default function LoginPage() {
       setIsLoading(true);
       setError(null);
       authService.completeGoogleLogin(handoff)
-        .then(() => { router.push('/'); router.refresh(); })
+        .then(() => { router.push(takeReturnPath()); router.refresh(); })
         .catch((googleError) => setError(
           handoff
             ? resolveApiErrorMessage(googleError, t('auth.login.googleFailed'))

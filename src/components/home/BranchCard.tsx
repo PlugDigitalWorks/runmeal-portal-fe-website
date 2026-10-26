@@ -6,6 +6,8 @@ import { useTranslation } from 'react-i18next';
 
 import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 import { TagBadgeList, useTagName } from '@/components/tags/TagBadge';
+import { formatDistance } from '@/lib/geo';
+import { writeSearchTerm } from '@/lib/search-text';
 import { Branch } from '@/types/branch';
 import { sortRestaurantTags, type Tag } from '@/types/tag';
 
@@ -13,9 +15,16 @@ interface BranchCardProps {
   branch: Branch;
   /** The selected product tags; the card says it sells a dish carrying them. */
   productTags: Tag[];
+  /**
+   * Only when the visitor gave a location: without one `distanceM` is from
+   * the default city's centre, which means nothing to them.
+   */
+  showDistance: boolean;
+  /** The search that found the restaurant; its page opens with it. */
+  searchTerm?: string;
 }
 
-export function BranchCard({ branch, productTags }: BranchCardProps) {
+export function BranchCard({ branch, productTags, showDistance, searchTerm }: BranchCardProps) {
   const { t, i18n } = useTranslation();
   const nameOf = useTagName();
   const language = i18n?.resolvedLanguage ?? i18n?.language ?? 'tr';
@@ -25,9 +34,12 @@ export function BranchCard({ branch, productTags }: BranchCardProps) {
     language.startsWith('en') ? nameOf(tag).toLocaleLowerCase('en') : nameOf(tag),
   );
 
+  const path = branch.brandSlug && branch.slug ? `/${branch.brandSlug}/${branch.slug}` : `/branches/${branch.id}`;
+  const query = searchTerm ? writeSearchTerm('', searchTerm) : '';
+
   return (
     <Link
-      href={branch.brandSlug && branch.slug ? `/${branch.brandSlug}/${branch.slug}` : `/branches/${branch.id}`}
+      href={query ? `${path}?${query}` : path}
       className="group bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-zinc-100 block"
     >
       <div className="h-40 bg-zinc-100 relative">
@@ -57,12 +69,8 @@ export function BranchCard({ branch, productTags }: BranchCardProps) {
               </span>
             </div>
           )}
-          {typeof branch.distanceM === 'number' && (
-            <div className="text-xs font-medium text-orange-600 mt-2">
-              {branch.distanceM < 1000
-                ? t('home.metersAway', { distance: Math.round(branch.distanceM) })
-                : t('home.kmAway', { distance: (branch.distanceM / 1000).toFixed(1) })}
-            </div>
+          {showDistance && typeof branch.distanceM === 'number' && (
+            <div className="text-xs font-medium text-orange-600 mt-2">{formatDistance(branch.distanceM, language)}</div>
           )}
         </div>
       </div>
