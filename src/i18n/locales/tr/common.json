@@ -588,7 +588,21 @@
     "metersAway": "{{distance}}m uzakta",
     "kmAway": "{{distance}}km uzakta",
     "noRestaurants": "Yakında restoran bulunamadı",
-    "noRestaurantsHelp": "Şu anda bulunduğunuz konuma hizmet veren şube yok. Adresinizi değiştirmeyi deneyin."
+    "noRestaurantsHelp": "Şu anda bulunduğunuz konuma hizmet veren şube yok. Adresinizi değiştirmeyi deneyin.",
+    "cuisines": "Mutfaklar",
+    "filters": "Filtreler",
+    "filtersCount": "Filtreler ({{count}})",
+    "featuresTitle": "Özellikler",
+    "dishesTitle": "Yemekler",
+    "selectedFilters": "Seçilen filtreler",
+    "removeFilter": "Filtreyi kaldır: {{name}}",
+    "clearFilters": "Temizle",
+    "showRestaurants": "Restoranları göster",
+    "maxFilters": "En fazla {{count}} filtre seçebilirsiniz.",
+    "hasDishes": "{{tags}} yemekleri var",
+    "noMatches": "Seçilen tüm filtrelere uyan restoran yok.",
+    "clearAllFilters": "Filtreleri temizle",
+    "loadMore": "Daha fazla yükle"
   },
   "orders": {
     "back": "Geri",
@@ -803,5 +817,8 @@
       "error": "Apple Cüzdan kartınız oluşturulamadı. Lütfen tekrar deneyin.",
       "macHint": "Apple Cüzdan kartları iPhone'a eklenir. Mac'te kart yalnızca önizleme veya indirme olarak açılabilir."
     }
+  },
+  "menu": {
+    "quickFilters": "Yemekleri filtrele"
   }
 }

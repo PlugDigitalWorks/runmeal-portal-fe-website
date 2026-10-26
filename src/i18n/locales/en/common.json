@@ -588,7 +588,21 @@
     "metersAway": "{{distance}}m away",
     "kmAway": "{{distance}}km away",
     "noRestaurants": "No restaurants found nearby",
-    "noRestaurantsHelp": "We currently don't have any branches serving your location. Try changing your address."
+    "noRestaurantsHelp": "We currently don't have any branches serving your location. Try changing your address.",
+    "cuisines": "Cuisines",
+    "filters": "Filters",
+    "filtersCount": "Filters ({{count}})",
+    "featuresTitle": "Features",
+    "dishesTitle": "Dishes",
+    "selectedFilters": "Selected filters",
+    "removeFilter": "Remove filter: {{name}}",
+    "clearFilters": "Clear",
+    "showRestaurants": "Show restaurants",
+    "maxFilters": "You can select up to {{count}} filters.",
+    "hasDishes": "Has {{tags}} dishes",
+    "noMatches": "No restaurants match all selected filters.",
+    "clearAllFilters": "Clear filters",
+    "loadMore": "Load more"
   },
   "orders": {
     "back": "Back",
@@ -803,5 +817,8 @@
       "error": "Your Apple Wallet pass could not be created. Please try again.",
       "macHint": "Apple Wallet passes are added on iPhone. On a Mac the pass may only open as a preview or a download."
     }
+  },
+  "menu": {
+    "quickFilters": "Filter dishes"
   }
 }

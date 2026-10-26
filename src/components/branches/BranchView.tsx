@@ -9,7 +9,10 @@ import { Product } from '@/types/product';
 import { CategoryList } from '@/components/categories/CategoryList';
 import { ProductList } from '@/components/products/ProductList';
 import { BranchStickyCart } from '@/components/branches/BranchStickyCart';
+import { TagBadgeList, TagToggle } from '@/components/tags/TagBadge';
 import { useBranch } from '@/context/BranchContext';
+import { buildMenuSections, collectProductTags } from '@/lib/menu-tags';
+import { sortRestaurantTags, type Tag } from '@/types/tag';
 import { MapPin, ArrowLeft, MessageSquareText } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -20,15 +23,18 @@ interface BranchViewProps {
   branch: Branch;
   categories: Category[];
   products: Product[];
+  /** The restaurant's own tags (cuisine, features). */
+  tags?: Tag[];
 }
 
-export function BranchView({ branch, categories, products }: BranchViewProps) {
+export function BranchView({ branch, categories, products, tags = [] }: BranchViewProps) {
   const { t } = useTranslation();
   const searchParams = useSearchParams();
   const { setSelectedBranch } = useBranch();
   const [activeCategoryId, setActiveCategoryId] = useState<string | undefined>(
     searchParams.get('categoryId') || undefined
   );
+  const [activeTagId, setActiveTagId] = useState<string | undefined>();
 
   // Set the selected branch when viewing this branch page
   useEffect(() => {
@@ -49,10 +55,16 @@ export function BranchView({ branch, categories, products }: BranchViewProps) {
     window.history.replaceState(null, '', newUrl);
   }, []);
 
-  // Filter products based on active category
-  const filteredProducts = activeCategoryId
-    ? products.filter(product => product.categoryId === activeCategoryId)
-    : products;
+  // Quick filters: only tags some product carries. A selected tag narrows the
+  // menu across categories and hides the categories left empty.
+  const quickTags = collectProductTags(products);
+  const visibleCategories = activeTagId
+    ? buildMenuSections(categories, products, { tagId: activeTagId }).map(section => section.category)
+    : categories;
+  const categoryId = visibleCategories.some(category => category.id === activeCategoryId)
+    ? activeCategoryId
+    : undefined;
+  const sections = buildMenuSections(categories, products, { categoryId, tagId: activeTagId });
 
   return (
     <div className="min-h-screen bg-zinc-50 flex flex-col">
@@ -78,6 +90,7 @@ export function BranchView({ branch, categories, products }: BranchViewProps) {
               </div>
               <div className="min-w-0">
                 <h1 className="text-2xl font-bold text-zinc-900">{branch.name}</h1>
+                <TagBadgeList tags={sortRestaurantTags(tags)} className="mt-2" />
                 <div className="flex items-center gap-2 text-zinc-500 text-sm mt-1">
                   <MapPin className="w-4 h-4" />
                   {branch.addressText}
@@ -98,16 +111,47 @@ export function BranchView({ branch, categories, products }: BranchViewProps) {
         <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-zinc-100 py-3 mb-6">
           <div className="container mx-auto">
             <CategoryList
-              categories={categories}
-              activeCategoryId={activeCategoryId}
+              categories={visibleCategories}
+              activeCategoryId={categoryId}
               onSelectCategory={handleCategorySelect}
             />
           </div>
         </div>
 
-        {/* Products */}
-        <div className="container mx-auto px-4">
-          <ProductList products={filteredProducts} branchId={branch.id} />
+        {quickTags.length > 0 && (
+          <div
+            role="group"
+            aria-label={t('menu.quickFilters')}
+            className="container mx-auto px-4 mb-6 flex gap-2 overflow-x-auto scrollbar-hide"
+          >
+            {quickTags.map(tag => (
+              <TagToggle
+                key={tag.id}
+                tag={tag}
+                selected={activeTagId === tag.id}
+                onToggle={() => setActiveTagId(current => (current === tag.id ? undefined : tag.id))}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Products, by category */}
+        <div className="container mx-auto px-4 space-y-8">
+          {sections.length > 0 ? (
+            sections.map(({ category, products: sectionProducts }) => (
+              <section key={category.id} aria-labelledby={`category-${category.id}`}>
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <h2 id={`category-${category.id}`} className="text-lg font-bold text-zinc-900">
+                    {category.name}
+                  </h2>
+                  <TagBadgeList tags={category.tags} />
+                </div>
+                <ProductList products={sectionProducts} branchId={branch.id} />
+              </section>
+            ))
+          ) : (
+            <ProductList products={[]} branchId={branch.id} />
+          )}
         </div>
       </main>
 

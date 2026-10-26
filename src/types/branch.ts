@@ -1,3 +1,5 @@
+import type { Tag } from './tag';
+
 export interface Branch {
   id: string;
   name: string;
@@ -45,6 +47,8 @@ export interface Branch {
   payment_settings?: unknown;
   /** Nearby-search only — the flattened copy of `parameters.order_type_settings`. */
   order_type_settings?: OrderTypeSettings;
+  /** Portal search only — the branch's active restaurant tags. */
+  tags?: Tag[];
 }
 
 /** Which payment methods the branch accepts. */

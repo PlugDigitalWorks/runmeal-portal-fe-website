@@ -6,6 +6,7 @@ import type {
   FulfillmentSlotsResponse,
   ScheduledOrderType,
 } from '@/types/branch';
+import type { Tag } from '@/types/tag';
 
 export const branchService = {
   async getNearbyBranches(lat?: number, lng?: number) {
@@ -22,6 +23,12 @@ export const branchService = {
 
   async getBranchDetails(branchId: string) {
     const response = await api.get<ApiResponse<Branch>>(`/branches/${branchId}`);
+    return response.data.data;
+  },
+
+  /** The restaurant's active tags, for its own page. */
+  async getBranchTags(branchId: string) {
+    const response = await api.get<ApiResponse<Tag[]>>(`/branches/${encodeURIComponent(branchId)}/tags`);
     return response.data.data;
   },
 
