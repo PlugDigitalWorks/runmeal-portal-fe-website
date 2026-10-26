@@ -15,6 +15,7 @@ import { userService } from '@/services/user.service';
 import { walletService, WalletBalance } from '@/services/wallet.service';
 import { branchService } from '@/services/branch.service';
 import { AddressForm, AddressFormValues } from '@/components/address/AddressForm';
+import { formatAddressFirstLine } from '@/lib/address-lines';
 import { CartPromotions } from '@/components/cart/CartPromotions';
 import { FulfillmentSlotPicker } from '@/components/checkout/FulfillmentSlotPicker';
 import type { Address } from '@/types/address';
@@ -863,7 +864,7 @@ export default function CheckoutView() {
                                                         <div className="flex items-start justify-between gap-3">
                                                             <div className="min-w-0">
                                                                 <div className="font-semibold text-zinc-900">{addr.province}, {addr.district}</div>
-                                                                <div className="text-sm text-zinc-500 mt-1">{addr.street} No: {addr.buildingNumber}</div>
+                                                                <div className="text-sm text-zinc-500 mt-1">{formatAddressFirstLine(addr)}</div>
                                                                 <div className={`text-xs mt-2 ${addr.phoneE164 ? 'text-zinc-500' : 'text-red-600'}`}>
                                                                     {addr.phoneE164 || t('checkout.phoneMissing')}
                                                                 </div>

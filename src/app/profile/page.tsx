@@ -13,6 +13,7 @@ import { PendingSurveys } from '@/components/surveys/PendingSurveys';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { AddressForm } from '@/components/address/AddressForm';
+import { formatAddressFirstLine } from '@/lib/address-lines';
 import { DiscountedLinePrice } from '@/components/ui/DiscountedLinePrice';
 import { OrderPromotionSnapshots } from '@/components/orders/OrderPromotionSnapshots';
 import { LoyaltyRewardsPanel } from '@/components/loyalty/LoyaltyRewardsPanel';
@@ -428,7 +429,7 @@ function ProfileContent() {
                                             </span>
                                         )}
                                         <p className="text-sm text-zinc-600 mt-1 leading-relaxed">
-                                            {addr.street} {addr.buildingNumber}/{addr.apartmentNumber}<br />
+                                            {formatAddressFirstLine(addr)}<br />
                                             {addr.postalCode} {addr.district}, {addr.province}<br/>
                                             {addr.phoneE164 ? <>{addr.phoneE164}<br /></> : null}
                                             {addr.countryCode}

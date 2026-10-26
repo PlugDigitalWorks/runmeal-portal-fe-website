@@ -543,9 +543,6 @@
     "province": "İl",
     "phone": "Telefon",
     "postalCode": "Posta Kodu",
-    "street": "Sokak",
-    "buildingNo": "Bina No",
-    "apartment": "Daire",
     "cancel": "İptal",
     "updateAddress": "Adresi Güncelle",
     "saveAddress": "Adresi Kaydet",
@@ -559,14 +556,20 @@
       "phoneRequired": "Telefon gereklidir",
       "phoneFormat": "E.164 formatını kullanın, örn. +905551112233",
       "postalRequired": "Posta Kodu gereklidir",
-      "streetRequired": "Sokak gereklidir",
-      "buildingRequired": "Bina gereklidir",
-      "apartmentRequired": "Daire gereklidir"
+      "firstLineRequired": "Adres satırını girin (sokak, bina ve daire no)",
+      "lineMax": "En fazla {{max}} karakter olabilir",
+      "linesTooLong": "Adres satırları birlikte en fazla {{max}} karakter olabilir",
+      "noteMax": "Not en fazla {{max}} karakter olabilir"
     },
     "tooManyRequests": "Çok hızlı istek gönderiyorsunuz. Lütfen biraz bekleyin.",
     "saveFailed": "Adres kaydedilemedi",
     "saveModalTitle": "Teslimat Adresini Kaydet",
-    "saveModalDescription": "Sepetinize ürün eklemeye devam etmek için lütfen bu adresi kaydedin."
+    "saveModalDescription": "Sepetinize ürün eklemeye devam etmek için lütfen bu adresi kaydedin.",
+    "firstLine": "Adres satırı 1",
+    "secondLine": "Adres satırı 2",
+    "optional": "isteğe bağlı",
+    "note": "Adres notu",
+    "notePlaceholder": "Örn. Zil bozuk, gelince arayın."
   },
   "common": {
     "viewCart": "Sepeti Gör",

@@ -543,9 +543,6 @@
     "province": "Province",
     "phone": "Phone",
     "postalCode": "Postal Code",
-    "street": "Street",
-    "buildingNo": "Building No",
-    "apartment": "Apartment",
     "cancel": "Cancel",
     "updateAddress": "Update Address",
     "saveAddress": "Save Address",
@@ -559,14 +556,20 @@
       "phoneRequired": "Phone is required",
       "phoneFormat": "Use E.164 format, e.g. +905551112233",
       "postalRequired": "Postal Code is required",
-      "streetRequired": "Street is required",
-      "buildingRequired": "Building is required",
-      "apartmentRequired": "Apartment is required"
+      "firstLineRequired": "Enter the first line of the address",
+      "lineMax": "At most {{max}} characters",
+      "linesTooLong": "Both address lines together can be at most {{max}} characters",
+      "noteMax": "The note can be at most {{max}} characters"
     },
     "tooManyRequests": "You are sending requests too quickly. Please wait a moment.",
     "saveFailed": "Failed to save address",
     "saveModalTitle": "Save Delivery Address",
-    "saveModalDescription": "Please save this address to continue adding items to your cart."
+    "saveModalDescription": "Please save this address to continue adding items to your cart.",
+    "firstLine": "Address line 1",
+    "secondLine": "Address line 2",
+    "optional": "optional",
+    "note": "Address note",
+    "notePlaceholder": "e.g. Doorbell is broken, please call on arrival."
   },
   "common": {
     "viewCart": "View Cart",

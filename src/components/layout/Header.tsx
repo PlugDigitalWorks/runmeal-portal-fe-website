@@ -13,6 +13,7 @@ import { Address } from '@/types/address';
 import { MapPin } from 'lucide-react';
 import { CartDrawer } from '@/components/ui/CartDrawer';
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
+import { formatAddressFirstLine } from '@/lib/address-lines';
 
 interface HeaderProps {
   user: User | null;
@@ -73,7 +74,7 @@ export function Header({ user, addresses = [], onAddressSelect, searchComponent 
                    >
                        {addresses.map(addr => (
                            <option key={addr.id} value={addr.id}>
-                               {addr.street} {addr.buildingNumber} ({addr.district})
+                               {formatAddressFirstLine(addr)} ({addr.district})
                            </option>
                        ))}
                    </select>
@@ -123,7 +124,7 @@ export function Header({ user, addresses = [], onAddressSelect, searchComponent 
                >
                    {addresses.map(addr => (
                        <option key={addr.id} value={addr.id}>
-                           {addr.street} {addr.buildingNumber}, {addr.district}
+                           {formatAddressFirstLine(addr)}, {addr.district}
                        </option>
                    ))}
                </select>
