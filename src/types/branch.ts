@@ -49,6 +49,8 @@ export interface Branch {
   order_type_settings?: OrderTypeSettings;
   /** Portal search only — the branch's active restaurant tags. */
   tags?: Tag[];
+  /** Portal search only — promoted; the API already lists these first. */
+  isFeatured?: boolean;
 }
 
 /** Which payment methods the branch accepts. */

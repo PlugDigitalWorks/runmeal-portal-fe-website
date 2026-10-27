@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { MapPin, UtensilsCrossed } from 'lucide-react';
+import { MapPin, Star, UtensilsCrossed } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
@@ -50,6 +50,12 @@ export function BranchCard({ branch, productTags, showDistance, searchTerm }: Br
           sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className="object-cover"
         />
+        {branch.isFeatured && (
+          <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-orange-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm">
+            <Star className="h-3 w-3 fill-current" aria-hidden />
+            {t('home.featured')}
+          </span>
+        )}
       </div>
       <div className="p-6">
         <h3 className="text-lg font-bold text-zinc-900 mb-2">{branch.name}</h3>

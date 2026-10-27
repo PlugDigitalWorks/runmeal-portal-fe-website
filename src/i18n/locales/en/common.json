@@ -608,7 +608,8 @@
     "resultsCount_one": "{{count}} restaurant found",
     "resultsCount_other": "{{count}} restaurants found",
     "noResultsForTerm": "No restaurants found for \"{{term}}\".",
-    "clearSearchAndFilters": "Clear search and filters"
+    "clearSearchAndFilters": "Clear search and filters",
+    "featured": "Featured"
   },
   "orders": {
     "back": "Back",

@@ -608,7 +608,8 @@
     "resultsCount_one": "{{count}} restoran bulundu",
     "resultsCount_other": "{{count}} restoran bulundu",
     "noResultsForTerm": "\"{{term}}\" için restoran bulunamadı.",
-    "clearSearchAndFilters": "Aramayı ve filtreleri temizle"
+    "clearSearchAndFilters": "Aramayı ve filtreleri temizle",
+    "featured": "Öne çıkan"
   },
   "orders": {
     "back": "Geri",

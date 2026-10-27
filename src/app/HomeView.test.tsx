@@ -374,3 +374,24 @@ describe('<HomeView /> sign-up branch', () => {
     expect(sessionStorage.getItem('runmeal_signup_branch_id')).toBeNull();
   });
 });
+
+describe('<HomeView /> featured restaurants', () => {
+  it('badges featured restaurants and keeps the order the API sent', async () => {
+    mockedPortal.getNearbyBranches.mockResolvedValue(
+      page([{ ...branch('promoted'), isFeatured: true }, { ...branch('plain'), isFeatured: false }, branch('older')]),
+    );
+
+    renderHome();
+
+    const promoted = (await screen.findByText('Restaurant promoted')).closest('a') as HTMLElement;
+    expect(within(promoted).getByText('home.featured')).toBeInTheDocument();
+    for (const name of ['Restaurant plain', 'Restaurant older']) {
+      expect(within(screen.getByText(name).closest('a') as HTMLElement).queryByText('home.featured')).not.toBeInTheDocument();
+    }
+    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual([
+      'Restaurant promoted',
+      'Restaurant plain',
+      'Restaurant older',
+    ]);
+  });
+});
