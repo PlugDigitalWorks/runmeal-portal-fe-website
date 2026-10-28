@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { GlobalHeader } from "@/components/layout/GlobalHeader";
 import { UserProvider } from "@/context/UserContext";
+import { LocationProvider } from "@/context/LocationContext";
 import { BranchProvider } from "@/context/BranchContext";
 import { CartProvider } from "@/context/CartContext";
 import { Toaster } from "sonner";
@@ -79,15 +80,17 @@ export default function RootLayout({
       >
         <I18nProvider>
           <UserProvider>
-            <BranchProvider>
-              <CartProvider>
-                <GoogleMapsProvider>
-                  <GlobalHeader />
-                  {children}
-                </GoogleMapsProvider>
-                <Toaster position="top-left" richColors toastOptions={{ style: { marginTop: '60px' } }} />
-              </CartProvider>
-            </BranchProvider>
+            <LocationProvider>
+              <BranchProvider>
+                <CartProvider>
+                  <GoogleMapsProvider>
+                    <GlobalHeader />
+                    {children}
+                  </GoogleMapsProvider>
+                  <Toaster position="top-left" richColors toastOptions={{ style: { marginTop: '60px' } }} />
+                </CartProvider>
+              </BranchProvider>
+            </LocationProvider>
           </UserProvider>
         </I18nProvider>
       </body>

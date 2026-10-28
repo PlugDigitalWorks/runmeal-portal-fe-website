@@ -285,7 +285,8 @@
       "requestAgain": "Tekrar Talep Et",
       "missingToken": "Geçersiz veya eksik sıfırlama anahtarı.",
       "loading": "Yükleniyor..."
-    }
+    },
+    "signInForBasket": "Sepetinizi görmek ve sipariş vermek için giriş yapın. Ürününüz saklanıyor."
   },
   "profile": {
     "personalInfo": "Kişisel Bilgiler",
@@ -543,9 +544,6 @@
     "province": "İl",
     "phone": "Telefon",
     "postalCode": "Posta Kodu",
-    "street": "Sokak",
-    "buildingNo": "Bina No",
-    "apartment": "Daire",
     "cancel": "İptal",
     "updateAddress": "Adresi Güncelle",
     "saveAddress": "Adresi Kaydet",
@@ -559,14 +557,20 @@
       "phoneRequired": "Telefon gereklidir",
       "phoneFormat": "E.164 formatını kullanın, örn. +905551112233",
       "postalRequired": "Posta Kodu gereklidir",
-      "streetRequired": "Sokak gereklidir",
-      "buildingRequired": "Bina gereklidir",
-      "apartmentRequired": "Daire gereklidir"
+      "firstLineRequired": "Adres satırını girin (sokak, bina ve daire no)",
+      "lineMax": "En fazla {{max}} karakter olabilir",
+      "linesTooLong": "Adres satırları birlikte en fazla {{max}} karakter olabilir",
+      "noteMax": "Not en fazla {{max}} karakter olabilir"
     },
     "tooManyRequests": "Çok hızlı istek gönderiyorsunuz. Lütfen biraz bekleyin.",
     "saveFailed": "Adres kaydedilemedi",
     "saveModalTitle": "Teslimat Adresini Kaydet",
-    "saveModalDescription": "Sepetinize ürün eklemeye devam etmek için lütfen bu adresi kaydedin."
+    "saveModalDescription": "Sepetinize ürün eklemeye devam etmek için lütfen bu adresi kaydedin.",
+    "firstLine": "Adres satırı 1",
+    "secondLine": "Adres satırı 2",
+    "optional": "isteğe bağlı",
+    "note": "Adres notu",
+    "notePlaceholder": "Örn. Zil bozuk, gelince arayın."
   },
   "common": {
     "viewCart": "Sepeti Gör",
@@ -585,10 +589,27 @@
     "active": "(Aktif)",
     "temporary": "(Geçici)",
     "nearbyRestaurants": "Yakındaki Restoranlar",
-    "metersAway": "{{distance}}m uzakta",
-    "kmAway": "{{distance}}km uzakta",
     "noRestaurants": "Yakında restoran bulunamadı",
-    "noRestaurantsHelp": "Şu anda bulunduğunuz konuma hizmet veren şube yok. Adresinizi değiştirmeyi deneyin."
+    "noRestaurantsHelp": "Şu anda bulunduğunuz konuma hizmet veren şube yok. Adresinizi değiştirmeyi deneyin.",
+    "cuisines": "Mutfaklar",
+    "filters": "Filtreler",
+    "filtersCount": "Filtreler ({{count}})",
+    "featuresTitle": "Özellikler",
+    "dishesTitle": "Yemekler",
+    "selectedFilters": "Seçilen filtreler",
+    "removeFilter": "Filtreyi kaldır: {{name}}",
+    "clearFilters": "Temizle",
+    "showRestaurants": "Restoranları göster",
+    "maxFilters": "En fazla {{count}} filtre seçebilirsiniz.",
+    "hasDishes": "{{tags}} yemekleri var",
+    "noMatches": "Seçilen tüm filtrelere uyan restoran yok.",
+    "clearAllFilters": "Filtreleri temizle",
+    "loadMore": "Daha fazla yükle",
+    "resultsCount_one": "{{count}} restoran bulundu",
+    "resultsCount_other": "{{count}} restoran bulundu",
+    "noResultsForTerm": "\"{{term}}\" için restoran bulunamadı.",
+    "clearSearchAndFilters": "Aramayı ve filtreleri temizle",
+    "featured": "Öne çıkan"
   },
   "orders": {
     "back": "Geri",
@@ -803,5 +824,29 @@
       "error": "Apple Cüzdan kartınız oluşturulamadı. Lütfen tekrar deneyin.",
       "macHint": "Apple Cüzdan kartları iPhone'a eklenir. Mac'te kart yalnızca önizleme veya indirme olarak açılabilir."
     }
+  },
+  "menu": {
+    "quickFilters": "Yemekleri filtrele",
+    "searchPlaceholder": "Menüde ara",
+    "clearSearch": "Aramayı temizle",
+    "searchMatches": "\"{{term}}\" için sonuçlar",
+    "showWholeMenu": "Tüm menüyü göster",
+    "noSearchMatches": "Menüde \"{{term}}\" ile eşleşen ürün yok, tüm menü gösteriliyor."
+  },
+  "search": {
+    "placeholder": "Yemek, mutfak veya restoran arayın",
+    "clear": "Aramayı temizle"
+  },
+  "location": {
+    "prompt": "Size teslimat yapan restoranları görmek için konumunuzu paylaşın.",
+    "promptLabel": "Konumunuz",
+    "share": "Konumu paylaş",
+    "notNow": "Şimdi değil",
+    "defaultCityBanner": "Londra'daki restoranlar gösteriliyor. Size teslimat yapanları görmek için adresinizi seçin.",
+    "defaultCity": "Londra",
+    "currentLocation": "Mevcut konum",
+    "chooseAddress": "Adres seç",
+    "pickerTitle": "Teslimat adresinizi seçin",
+    "pickerDescription": "Oraya teslimat yapan restoranları göstereceğiz."
   }
 }

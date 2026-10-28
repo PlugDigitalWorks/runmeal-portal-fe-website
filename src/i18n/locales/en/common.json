@@ -285,7 +285,8 @@
       "requestAgain": "Request Again",
       "missingToken": "Invalid or missing reset token.",
       "loading": "Loading..."
-    }
+    },
+    "signInForBasket": "Sign in to see your basket and order. Your item is kept."
   },
   "profile": {
     "personalInfo": "Personal Info",
@@ -543,9 +544,6 @@
     "province": "Province",
     "phone": "Phone",
     "postalCode": "Postal Code",
-    "street": "Street",
-    "buildingNo": "Building No",
-    "apartment": "Apartment",
     "cancel": "Cancel",
     "updateAddress": "Update Address",
     "saveAddress": "Save Address",
@@ -559,14 +557,20 @@
       "phoneRequired": "Phone is required",
       "phoneFormat": "Use E.164 format, e.g. +905551112233",
       "postalRequired": "Postal Code is required",
-      "streetRequired": "Street is required",
-      "buildingRequired": "Building is required",
-      "apartmentRequired": "Apartment is required"
+      "firstLineRequired": "Enter the first line of the address",
+      "lineMax": "At most {{max}} characters",
+      "linesTooLong": "Both address lines together can be at most {{max}} characters",
+      "noteMax": "The note can be at most {{max}} characters"
     },
     "tooManyRequests": "You are sending requests too quickly. Please wait a moment.",
     "saveFailed": "Failed to save address",
     "saveModalTitle": "Save Delivery Address",
-    "saveModalDescription": "Please save this address to continue adding items to your cart."
+    "saveModalDescription": "Please save this address to continue adding items to your cart.",
+    "firstLine": "Address line 1",
+    "secondLine": "Address line 2",
+    "optional": "optional",
+    "note": "Address note",
+    "notePlaceholder": "e.g. Doorbell is broken, please call on arrival."
   },
   "common": {
     "viewCart": "View Cart",
@@ -585,10 +589,27 @@
     "active": "(Active)",
     "temporary": "(Temporary)",
     "nearbyRestaurants": "Nearby Restaurants",
-    "metersAway": "{{distance}}m away",
-    "kmAway": "{{distance}}km away",
     "noRestaurants": "No restaurants found nearby",
-    "noRestaurantsHelp": "We currently don't have any branches serving your location. Try changing your address."
+    "noRestaurantsHelp": "We currently don't have any branches serving your location. Try changing your address.",
+    "cuisines": "Cuisines",
+    "filters": "Filters",
+    "filtersCount": "Filters ({{count}})",
+    "featuresTitle": "Features",
+    "dishesTitle": "Dishes",
+    "selectedFilters": "Selected filters",
+    "removeFilter": "Remove filter: {{name}}",
+    "clearFilters": "Clear",
+    "showRestaurants": "Show restaurants",
+    "maxFilters": "You can select up to {{count}} filters.",
+    "hasDishes": "Has {{tags}} dishes",
+    "noMatches": "No restaurants match all selected filters.",
+    "clearAllFilters": "Clear filters",
+    "loadMore": "Load more",
+    "resultsCount_one": "{{count}} restaurant found",
+    "resultsCount_other": "{{count}} restaurants found",
+    "noResultsForTerm": "No restaurants found for \"{{term}}\".",
+    "clearSearchAndFilters": "Clear search and filters",
+    "featured": "Featured"
   },
   "orders": {
     "back": "Back",
@@ -803,5 +824,29 @@
       "error": "Your Apple Wallet pass could not be created. Please try again.",
       "macHint": "Apple Wallet passes are added on iPhone. On a Mac the pass may only open as a preview or a download."
     }
+  },
+  "menu": {
+    "quickFilters": "Filter dishes",
+    "searchPlaceholder": "Search the menu",
+    "clearSearch": "Clear search",
+    "searchMatches": "Matches for \"{{term}}\"",
+    "showWholeMenu": "Show the whole menu",
+    "noSearchMatches": "Nothing on the menu matches \"{{term}}\", so the whole menu is shown."
+  },
+  "search": {
+    "placeholder": "Search dishes, cuisines or restaurants",
+    "clear": "Clear search"
+  },
+  "location": {
+    "prompt": "Share your location to see restaurants that deliver to you.",
+    "promptLabel": "Your location",
+    "share": "Share location",
+    "notNow": "Not now",
+    "defaultCityBanner": "Showing restaurants in London. Choose your address to see who delivers to you.",
+    "defaultCity": "London",
+    "currentLocation": "Current location",
+    "chooseAddress": "Choose address",
+    "pickerTitle": "Choose your delivery address",
+    "pickerDescription": "We'll show the restaurants that deliver there."
   }
 }

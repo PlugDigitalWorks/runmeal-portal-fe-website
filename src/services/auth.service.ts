@@ -12,6 +12,7 @@ import {
   VerifyOtpDto,
 } from '@/types/auth';
 import Cookies from 'js-cookie';
+import { signupBranchHeaders } from '@/lib/signup-branch';
 
 const unwrapAuthData = <T>(payload: ApiResponse<T> | T): T => {
   if (payload && typeof payload === 'object' && 'data' in payload) {
@@ -61,9 +62,25 @@ const exchangeGoogleHandoff = (code: string): Promise<AuthResponse> => {
   return promise;
 };
 
+/**
+ * The sign-up body the API accepts — anything else is a 400 VALIDATION_FAILED.
+ * The branch goes as a header instead (`signupBranchHeaders`).
+ */
+const toRegisterBody = ({ email, firstName, lastName, password, country }: RegisterDto): RegisterDto => ({
+  email,
+  firstName,
+  lastName,
+  ...(password ? { password } : {}),
+  ...(country ? { country } : {}),
+});
+
+const isSocialMethod = (method?: string) => method === 'google' || method === 'apple';
+
 export const authService = {
   async register(data: RegisterDto) {
-    const response = await api.post<ApiResponse<AuthResponse>>('/auth/register', data);
+    const response = await api.post<ApiResponse<AuthResponse>>('/auth/register', toRegisterBody(data), {
+      headers: signupBranchHeaders(),
+    });
     return response.data.data;
   },
 
@@ -89,7 +106,7 @@ export const authService = {
       ...data,
       method: data.method || 'password',
       client: data.client || AUTH_CLIENT,
-    });
+    }, isSocialMethod(data.method) ? { headers: signupBranchHeaders() } : undefined);
 
     persistAuthResponse(response.data.data);
 
@@ -107,7 +124,11 @@ export const authService = {
   },
 
   async registerWithOtp(data: Omit<RegisterDto, 'password'>) {
-    const response = await api.post<ApiResponse<OtpRequestResponse> | OtpRequestResponse>('/auth/register', data);
+    const response = await api.post<ApiResponse<OtpRequestResponse> | OtpRequestResponse>(
+      '/auth/register',
+      toRegisterBody(data),
+      { headers: signupBranchHeaders() },
+    );
     return unwrapAuthData(response.data);
   },
 
@@ -121,10 +142,12 @@ export const authService = {
     return authResponse;
   },
 
+  /** A first Google sign-in opens the account, so the branch it came from goes along. */
   async startGoogleLogin() {
     const response = await authApi.post<ApiResponse<GoogleLoginStartResponse>>(
       '/auth/login',
       { method: 'google', client: AUTH_CLIENT },
+      { headers: signupBranchHeaders() },
     );
 
     return response.data.data;

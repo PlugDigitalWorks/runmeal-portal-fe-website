@@ -4,10 +4,17 @@ import { useState } from 'react';
 import { Product } from '@/types/product';
 import { useCart } from '@/context/CartContext';
 import { useBranch } from '@/context/BranchContext';
+import { useUser } from '@/context/UserContext';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
+import { rememberReturnPath } from '@/lib/return-path';
 import { Plus } from 'lucide-react';
 import { CartAddonSelection, CartOptionSelection, ProductDetailModal } from './ProductDetailModal';
 import { formatCurrencyAmount, getCurrencySymbol } from '@/lib/currency';
 import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
+import { TagBadgeList } from '@/components/tags/TagBadge';
+import { uniqueTags } from '@/lib/menu-tags';
 
 interface ProductListProps {
   products: Product[];
@@ -16,6 +23,9 @@ interface ProductListProps {
 
 export function ProductList({ products, branchId }: ProductListProps) {
   const { addToCart } = useCart();
+  const { user } = useUser();
+  const router = useRouter();
+  const { t } = useTranslation();
   const { selectedBranch, setSelectedBranch } = useBranch();
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -59,6 +69,13 @@ export function ProductList({ products, branchId }: ProductListProps) {
     note?: string,
   ) => {
     await addToCart(product.id, quantity, options, addons, note, product);
+    // Browsing needs no account; the basket does. The item waits in the guest
+    // basket, which moves to the account on sign-in, and the visitor comes back here.
+    if (!user) {
+      rememberReturnPath();
+      toast.info(t('auth.signInForBasket'));
+      router.push('/login');
+    }
   };
 
   if (products.length === 0) {
@@ -75,6 +92,7 @@ export function ProductList({ products, branchId }: ProductListProps) {
         {products.map((product) => {
           const currencySymbol = getCurrencySymbol(product);
           const hasDiscountedPrice = product.discountedPrice !== undefined && product.discountedPrice !== null;
+          const tags = uniqueTags(product.tags);
 
           return (
             <div
@@ -93,9 +111,12 @@ export function ProductList({ products, branchId }: ProductListProps) {
               </div>
 
               <div className="p-3 flex-1 flex flex-col justify-between min-w-0">
-                <div>
+                <div className="min-w-0">
                   <h3 className="font-semibold text-zinc-900 leading-tight mb-1 truncate">{product.name}</h3>
-                  <p className="text-sm text-zinc-500 line-clamp-2 leading-snug">{product.description}</p>
+                  <p className={`text-sm text-zinc-500 leading-snug ${tags.length ? 'line-clamp-1' : 'line-clamp-2'}`}>
+                    {product.description}
+                  </p>
+                  <TagBadgeList tags={tags} max={3} className="mt-1 flex-nowrap overflow-hidden" />
                 </div>
 
                 <div className="flex items-center justify-between mt-2">

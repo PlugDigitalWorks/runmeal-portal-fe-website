@@ -2,11 +2,30 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import Cookies from 'js-cookie';
 
 import type { AuthClient, RefreshResponse } from '@/types/auth';
+import { rememberReturnPath } from '@/lib/return-path';
 
 const AUTH_BYPASS_PATHS = ['/auth/refresh', '/auth/login', '/auth/register', '/auth/verify-otp'];
 
 const isAuthBypassUrl = (url?: string) =>
   !!url && AUTH_BYPASS_PATHS.some((path) => url.includes(path));
+
+/**
+ * Reads anyone may make: the restaurant list, search, tags, a restaurant's
+ * page and menu. Browsing never sends a visitor to sign in.
+ */
+const PUBLIC_READ_PATHS = [
+  /^\/portal\//,
+  /^\/public\//,
+  /^\/tags(\?|$)/,
+  /^\/brands\/[^/]+\/menu(\?|$)/,
+  /^\/branches\/[^/]+\/(menu|tags|availability|fulfillment-slots)(\?|$)/,
+  /^\/products\/[^/?]+(\?|$)/,
+];
+
+const isPublicRead = (config: InternalAxiosRequestConfig) =>
+  (config.method ?? 'get').toLowerCase() === 'get' &&
+  !!config.url &&
+  PUBLIC_READ_PATHS.some((pattern) => pattern.test(config.url as string));
 
 const API_URL = 
   typeof window === 'undefined' 
@@ -110,7 +129,7 @@ const processQueue = (error: unknown, token: string | null = null) => {
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean; _anonymous?: boolean };
 
     if (error.response?.status === 401 && !originalRequest._retry) {
 
@@ -163,13 +182,24 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
+        const hadSession = !!originalRequest.headers?.Authorization;
         // Clear tokens and redirect to login
         Cookies.remove('accessToken');
         Cookies.remove('refreshToken');
         Cookies.remove('sid');
         Cookies.remove('user');
-        
-        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+        delete api.defaults.headers.common['Authorization'];
+
+        // A public read works signed out: ask once more without the expired token.
+        if (isPublicRead(originalRequest) && !originalRequest._anonymous) {
+            originalRequest._anonymous = true;
+            delete originalRequest.headers.Authorization;
+            return api(originalRequest);
+        }
+
+        // Only an expired session goes to sign-in, and comes back here after.
+        if (hadSession && typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+            rememberReturnPath();
             window.location.href = '/login';
         }
         

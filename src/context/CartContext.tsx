@@ -312,8 +312,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
               district: addressParts[1] || 'Unknown',
               postalCode: '00000',
               street: addressParts[0] || guestAddress.formattedAddress,
-              buildingNumber: '-',
-              apartmentNumber: '-',
               latitude: guestAddress.latitude,
               longitude: guestAddress.longitude,
               isActive: true

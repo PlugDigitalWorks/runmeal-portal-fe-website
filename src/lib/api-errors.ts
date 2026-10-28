@@ -4,9 +4,15 @@ interface ApiErrorLike {
   response?: { data?: { code?: unknown; message?: unknown; data?: unknown } };
 }
 
+/** The envelope's `code` (e.g. `VALIDATION_FAILED`), when the API sent one. */
+export function getApiErrorCode(error: unknown): string | null {
+  const code = (error as ApiErrorLike)?.response?.data?.code;
+  return typeof code === 'string' ? code : null;
+}
+
 export function resolveApiErrorMessage(error: unknown, fallback: string): string {
   const envelope = (error as ApiErrorLike)?.response?.data;
-  const code = typeof envelope?.code === 'string' ? envelope.code : null;
+  const code = getApiErrorCode(error);
   if (code) {
     const key = `apiErrors.${code}`;
     if (i18n.exists(key)) {

@@ -16,6 +16,14 @@ import { Country, State, City } from 'country-state-city';
 import { useCallback, useRef, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
+import {
+    NOTE_MAX_LENGTH,
+    SECOND_LINE_MAX_LENGTH,
+    STREET_MAX_LENGTH,
+    composeFirstLine,
+    formatAddressFirstLine,
+    joinAddressLines,
+} from '@/lib/address-lines';
 
 // Helper to normalize strings for comparison
 const normalizeName = (name: string) => {
@@ -36,11 +44,19 @@ export const createAddressSchema = (t: TFunction) => z.object({
     .min(1, t('address.validation.phoneRequired'))
     .refine((value) => /^\+[1-9]\d{7,14}$/.test(value), t('address.validation.phoneFormat')),
   postalCode: z.string().min(1, t('address.validation.postalRequired')),
-  street: z.string().min(1, t('address.validation.streetRequired')),
-  buildingNumber: z.string().min(1, t('address.validation.buildingRequired')),
-  apartmentNumber: z.string().min(1, t('address.validation.apartmentRequired')),
+  // Address line 1; line 2 is optional and both go to the API joined as `street`.
+  street: z.string().trim()
+    .min(2, t('address.validation.firstLineRequired'))
+    .max(STREET_MAX_LENGTH, t('address.validation.lineMax', { max: STREET_MAX_LENGTH })),
+  line2: z.string().trim().max(SECOND_LINE_MAX_LENGTH, t('address.validation.lineMax', { max: SECOND_LINE_MAX_LENGTH })),
+  note: z.string().trim().max(NOTE_MAX_LENGTH, t('address.validation.noteMax', { max: NOTE_MAX_LENGTH })),
   latitude: z.any().transform(val => Number(val)),
   longitude: z.any().transform(val => Number(val)),
+}).superRefine((values, ctx) => {
+  // A saved address can already fill line 1 close to the limit.
+  if (joinAddressLines(values.street, values.line2).length > STREET_MAX_LENGTH) {
+    ctx.addIssue({ code: 'custom', path: ['line2'], message: t('address.validation.linesTooLong', { max: STREET_MAX_LENGTH }) });
+  }
 });
 
 export type AddressFormValues = {
@@ -50,14 +66,15 @@ export type AddressFormValues = {
   phoneE164: string;
   postalCode: string;
   street: string;
-  buildingNumber: string;
-  apartmentNumber: string;
+  line2: string;
+  note: string;
   latitude: number;
   longitude: number;
 };
 
 interface AddressFormProps {
-    initialValues?: Partial<AddressFormValues>;
+    /** A saved address to edit, or a starting point (e.g. only a location). */
+    initialValues?: Partial<Address>;
     addressId?: string | null;
     onCancel: () => void;
     onSuccess: (address?: Address) => Promise<void>;
@@ -73,17 +90,19 @@ export function AddressForm({ initialValues, addressId, onCancel, onSuccess, res
   const ignoreSearchRef = useRef(false);
 
   const defaultValues = {
-      countryCode: 'TR', 
-      district: 'Fatih', 
-      province: 'İstanbul', 
-      phoneE164: '',
-      postalCode: '', 
-      street: '', 
-      buildingNumber: '', 
-      apartmentNumber: '', 
-      latitude: undefined, 
-      longitude: undefined,
-      ...initialValues
+      countryCode: initialValues?.countryCode || 'TR',
+      district: initialValues?.district || 'Fatih',
+      province: initialValues?.province || 'İstanbul',
+      phoneE164: initialValues?.phoneE164 ?? '',
+      postalCode: initialValues?.postalCode ?? '',
+      // A saved address keeps one joined line; it comes back whole in line 1.
+      street: initialValues?.street
+          ? formatAddressFirstLine({ street: initialValues.street, buildingNumber: initialValues.buildingNumber ?? null })
+          : '',
+      line2: '',
+      note: initialValues?.note ?? '',
+      latitude: initialValues?.latitude,
+      longitude: initialValues?.longitude,
   };
 
   const {
@@ -189,17 +208,15 @@ export function AddressForm({ initialValues, addressId, onCancel, onSuccess, res
       if (!finalCity && possibleCities.length > 0) finalCity = possibleCities[0];
       if (!finalState && administrativeAreaLevel1) finalState = administrativeAreaLevel1;
 
-      // Address Line
-      const street = route ? `${route}` : '';
-      const building = streetNumber; 
+      // Address line 1: street and house number in the country's order.
+      const street = composeFirstLine(route, streetNumber, countryCode);
 
       setValue('countryCode', countryCode);
       setValue('province', finalState);
       setValue('district', finalCity);
       
       setValue('postalCode', postalCode || '');
-      setValue('street', street || '');
-      if (building) setValue('buildingNumber', building);
+      if (street) setValue('street', street);
       
       setSearchAddress(undefined);
   }, [setValue, getValues]);
@@ -207,17 +224,21 @@ export function AddressForm({ initialValues, addressId, onCancel, onSuccess, res
   const onSubmit = async (data: AddressFormValues) => {
     setAddressLoading(true);
     setFormError(null);
+    // Both lines go as one `street`; `buildingNumber: null` drops a number an
+    // older row kept apart, and `note` always goes along ("" clears it).
+    const { line2, ...fields } = data;
+    const payload = { ...fields, street: joinAddressLines(fields.street, line2), buildingNumber: null };
     try {
       if (addressId) {
           // Update existing
-          const updated = await userService.updateAddress(addressId, data);
+          const updated = await userService.updateAddress(addressId, payload);
           if (updated) {
                await onSuccess();
           }
       } else {
           // Create new
           const isActive = resolveCreateIsActive ? await resolveCreateIsActive(data) : true;
-          let newAddress = await userService.createAddress({ ...data, isActive });
+          let newAddress = await userService.createAddress({ ...payload, isActive });
           if (!isActive && newAddress?.isActive) {
               newAddress = await userService.updateAddress(newAddress.id, { isActive: false });
           }
@@ -275,22 +296,56 @@ export function AddressForm({ initialValues, addressId, onCancel, onSuccess, res
             <Input label={t('address.district')} {...register('district')} />
             <Input label={t('address.province')} {...register('province')} />
          </div>
+         {/* Left: where the address is (postcode, lines); right: how to reach the door. */}
          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-                label={t('address.phone')}
-                type="tel"
-                placeholder="+905551112233"
-                {...register('phoneE164')}
-                error={errors.phoneE164?.message}
-            />
-            <Input label={t('address.postalCode')} placeholder="34000" {...register('postalCode')} error={errors.postalCode?.message} />
-        </div>
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input label={t('address.street')} {...register('street')} error={errors.street?.message} />
-            <Input label={t('address.buildingNo')} {...register('buildingNumber')} error={errors.buildingNumber?.message} />
-        </div>
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input label={t('address.apartment')} {...register('apartmentNumber')} error={errors.apartmentNumber?.message} />
+            <div className="space-y-4">
+                <Input
+                    label={t('address.postalCode')}
+                    placeholder="34000"
+                    autoComplete="postal-code"
+                    {...register('postalCode')}
+                    error={errors.postalCode?.message}
+                />
+                <Input
+                    label={t('address.firstLine')}
+                    autoComplete="address-line1"
+                    maxLength={STREET_MAX_LENGTH}
+                    {...register('street')}
+                    error={errors.street?.message}
+                />
+                <Input
+                    label={`${t('address.secondLine')} (${t('address.optional')})`}
+                    autoComplete="address-line2"
+                    maxLength={SECOND_LINE_MAX_LENGTH}
+                    {...register('line2')}
+                    error={errors.line2?.message}
+                />
+            </div>
+            <div className="space-y-4">
+                <Input
+                    label={t('address.phone')}
+                    type="tel"
+                    placeholder="+905551112233"
+                    autoComplete="tel"
+                    {...register('phoneE164')}
+                    error={errors.phoneE164?.message}
+                />
+                <div className="w-full space-y-2">
+                    <label htmlFor="address-note" className="text-sm font-medium leading-none text-zinc-700">
+                        {t('address.note')} <span className="font-normal text-zinc-400">({t('address.optional')})</span>
+                    </label>
+                    <textarea
+                        id="address-note"
+                        rows={4}
+                        maxLength={NOTE_MAX_LENGTH}
+                        placeholder={t('address.notePlaceholder')}
+                        aria-invalid={errors.note ? true : undefined}
+                        {...register('note')}
+                        className={`flex w-full rounded-lg border bg-white px-3 py-2 text-sm placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 transition-all duration-200 ${errors.note ? 'border-red-500 focus-visible:ring-red-500' : 'border-zinc-300 focus-visible:ring-orange-500'}`}
+                    />
+                    {errors.note && <p role="alert" className="text-xs text-red-500 font-medium">{errors.note.message}</p>}
+                </div>
+            </div>
         </div>
 
         {formError && (

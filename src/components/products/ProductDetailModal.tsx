@@ -6,6 +6,8 @@ import { useBranch } from '@/context/BranchContext';
 import { catalogService } from '@/services/catalog.service';
 import { formatCurrencyAmount, getCurrencySymbol } from '@/lib/currency';
 import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
+import { TagBadgeList } from '@/components/tags/TagBadge';
+import { uniqueTags } from '@/lib/menu-tags';
 import { X, Minus, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -250,6 +252,7 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
                             )}
                         </div>
                         <p className="mt-2 text-zinc-600 text-sm leading-relaxed">{product.description}</p>
+                        <TagBadgeList tags={uniqueTags(product.tags)} className="mt-3" />
                     </div>
 
                     {loadingDetails && (

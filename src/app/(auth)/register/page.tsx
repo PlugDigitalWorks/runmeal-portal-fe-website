@@ -13,6 +13,7 @@ import { RUNMEAL_LOGO } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { authService } from '@/services/auth.service';
+import { takeReturnPath } from '@/lib/return-path';
 import { OtpChallenge } from '@/components/auth/OtpChallenge';
 import { resolveApiErrorMessage } from '@/lib/api-errors';
 import { toast } from 'sonner';
@@ -67,7 +68,7 @@ export default function RegisterPage() {
     try {
       await authService.verifyOtp({ email: sentEmail, code });
       toast.success(t('auth.otp.success'));
-      router.push('/');
+      router.push(takeReturnPath());
       router.refresh();
     } catch (verifyError) {
       setError(resolveApiErrorMessage(verifyError, t('auth.validation.generic')));

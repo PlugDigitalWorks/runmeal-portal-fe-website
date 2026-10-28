@@ -1,3 +1,5 @@
+import type { ProductTag } from './tag';
+
 export interface Product {
   id: string;
   createdAt?: string;
@@ -8,7 +10,8 @@ export interface Product {
   branchId: string;
   name: string;
   description: string;
-  tags?: string[];
+  /** Its own tags and those inherited from its category (`source`). */
+  tags?: ProductTag[];
   price: number | string;
   discountedPrice?: number | string | null;
   currency?: string | null;

@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { Branch } from '@/types/branch';
 import { Category } from '@/types/category';
 import { Product } from '@/types/product';
+import type { Tag } from '@/types/tag';
 
 export default async function BranchBySlugPage({
   params,
@@ -28,6 +29,12 @@ export default async function BranchBySlugPage({
   let categories: Category[] = [];
   let products: Product[] = [];
 
+  // The restaurant's tags are decoration: the page renders without them.
+  const tagsRequest = branchService.getBranchTags(branch.id).catch((err): Tag[] => {
+    console.error(`FAILED to fetch tags for branch: ${branch.id}`, err);
+    return [];
+  });
+
   // Branch-scoped menu so products/categories disabled for this branch are excluded.
   try {
     ({ categories, products } = await catalogService.getBranchCatalog(branch.id));
@@ -37,11 +44,14 @@ export default async function BranchBySlugPage({
     products = [];
   }
 
+  const tags = await tagsRequest;
+
   return (
     <BranchView
       branch={branch}
       categories={categories}
       products={products}
+      tags={tags}
     />
   );
 }
