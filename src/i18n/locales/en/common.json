@@ -161,6 +161,8 @@
     "POS_PROVIDER_REJECTED": "The POS provider rejected this request.",
     "POS_PROVIDER_REQUEST_FAILED": "The POS provider could not complete this request.",
     "PRODUCT_NOT_FOUND": "Product not found.",
+    "PRODUCT_QUANTITY_UNAVAILABLE": "Not enough {{productName}} is left for this order.",
+    "PRODUCT_SOLD_OUT": "{{productName}} is sold out.",
     "SPLIT_PART_ALREADY_PAID": "This part has already been paid.",
     "SPLIT_PART_AMOUNT_TOO_SMALL": "Each split part must be at least 0.01.",
     "SPLIT_PART_NOT_FOUND": "Split part not found.",
@@ -435,7 +437,8 @@
     "productNotePlaceholder": "Less spicy, no onions...",
     "totalAmount": "Total Amount",
     "loading": "Loading...",
-    "addToCart": "Add to Cart"
+    "addToCart": "Add to Cart",
+    "soldOut": "Sold out"
   },
   "cart": {
     "myCart": "My Cart",
@@ -460,6 +463,7 @@
       "addFailed": "Failed to add item to cart",
       "removeFailed": "Failed to remove item",
       "updateFailed": "Failed to update quantity",
+      "stockAdjustHint": "Lower the quantity or remove it from your cart to continue.",
       "cleared": "Cart cleared",
       "clearFailed": "Failed to clear cart"
     },

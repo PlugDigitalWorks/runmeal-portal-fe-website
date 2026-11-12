@@ -32,6 +32,8 @@ export function ProductList({ products, branchId }: ProductListProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleProductClick = (product: Product) => {
+    // Still listed, but it cannot be ordered until staff add stock.
+    if (product.isSoldOut) return;
     // Set/update selectedBranch if branchId is passed and doesn't match
     if (branchId && (!selectedBranch || selectedBranch.id !== branchId)) {
       // We need to create a minimal branch object for the context
@@ -78,6 +80,13 @@ export function ProductList({ products, branchId }: ProductListProps) {
     }
   };
 
+  // Read from the refreshed menu, so a product that sold out while its modal
+  // was open shows as sold out there too. Only the flag: a new product object
+  // would reset the customer's choices.
+  const isSelectedSoldOut = selectedProduct
+    ? Boolean((products.find(p => p.id === selectedProduct.id) ?? selectedProduct).isSoldOut)
+    : false;
+
   if (products.length === 0) {
     return (
       <div className="text-center py-12">
@@ -93,26 +102,35 @@ export function ProductList({ products, branchId }: ProductListProps) {
           const currencySymbol = getCurrencySymbol(product);
           const hasDiscountedPrice = product.discountedPrice !== undefined && product.discountedPrice !== null;
           const tags = uniqueTags(product.tags);
+          const soldOut = Boolean(product.isSoldOut);
 
           return (
             <div
               key={product.id}
-              className="group bg-white rounded-lg border border-zinc-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden flex flex-row h-32"
+              aria-disabled={soldOut || undefined}
+              className={`group bg-white rounded-lg border border-zinc-100 shadow-sm transition-all duration-300 overflow-hidden flex flex-row h-32 ${soldOut ? 'opacity-60' : 'hover:shadow-md'}`}
             >
-              <div className="relative w-32 h-full bg-zinc-100 shrink-0">
+              <div className={`relative w-32 h-full bg-zinc-100 shrink-0 ${soldOut ? 'grayscale' : ''}`}>
                 <ImageWithFallback
                   src={product.imageUrl || product.image}
                   alt={product.name}
                   fill
                   sizes="128px"
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  className={`object-cover transition-transform duration-500 ${soldOut ? '' : 'group-hover:scale-105'}`}
                   fallbackClassName="object-contain p-3 opacity-40"
                 />
               </div>
 
               <div className="p-3 flex-1 flex flex-col justify-between min-w-0">
                 <div className="min-w-0">
-                  <h3 className="font-semibold text-zinc-900 leading-tight mb-1 truncate">{product.name}</h3>
+                  <div className="flex items-center gap-2 mb-1 min-w-0">
+                    <h3 className="font-semibold text-zinc-900 leading-tight truncate">{product.name}</h3>
+                    {soldOut && (
+                      <span className="shrink-0 rounded-full bg-zinc-800 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">
+                        {t('product.soldOut')}
+                      </span>
+                    )}
+                  </div>
                   <p className={`text-sm text-zinc-500 leading-snug ${tags.length ? 'line-clamp-1' : 'line-clamp-2'}`}>
                     {product.description}
                   </p>
@@ -134,8 +152,11 @@ export function ProductList({ products, branchId }: ProductListProps) {
                     )}
                   </span>
                   <button
+                    type="button"
                     onClick={() => handleProductClick(product)}
-                    className="bg-orange-600 text-white p-2 rounded-lg hover:bg-orange-700 transition-colors shadow-sm active:scale-95"
+                    disabled={soldOut}
+                    aria-label={soldOut ? `${product.name} — ${t('product.soldOut')}` : product.name}
+                    className="bg-orange-600 text-white p-2 rounded-lg hover:bg-orange-700 transition-colors shadow-sm active:scale-95 disabled:bg-zinc-300 disabled:text-zinc-500 disabled:cursor-not-allowed disabled:shadow-none disabled:active:scale-100"
                   >
                     <Plus className="w-5 h-5" />
                   </button>
@@ -151,6 +172,7 @@ export function ProductList({ products, branchId }: ProductListProps) {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onAddToCart={handleAddToCartFromModal}
+        isSoldOut={isSelectedSoldOut}
       />
     </>
   );

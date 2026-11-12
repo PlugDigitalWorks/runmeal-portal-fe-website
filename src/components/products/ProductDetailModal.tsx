@@ -35,9 +35,11 @@ interface ProductDetailModalProps {
         addons: CartAddonSelection[],
         note?: string,
     ) => void;
+    /** Overrides `product.isSoldOut` with the latest menu read. */
+    isSoldOut?: boolean;
 }
 
-export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: ProductDetailModalProps) {
+export function ProductDetailModal({ product, isOpen, onClose, onAddToCart, isSoldOut }: ProductDetailModalProps) {
     const { t } = useTranslation();
     const { selectedBranch } = useBranch();
     const [quantity, setQuantity] = useState(1);
@@ -104,6 +106,8 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
 
     if (!isOpen || !product) return null;
 
+    const soldOut = isSoldOut ?? Boolean(product.isSoldOut);
+
     const hasDiscountedPrice = product.discountedPrice !== undefined && product.discountedPrice !== null;
     const basePrice = Number(hasDiscountedPrice ? product.discountedPrice : product.price);
 
@@ -160,6 +164,7 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
     };
 
     const handleAddToCart = () => {
+        if (soldOut) return;
         // Validate Required Groups
         for (const group of optionGroups) {
             const selectedCount = (selections[group.id] || []).length;
@@ -388,10 +393,10 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
 
                     <button
                         onClick={handleAddToCart}
-                        disabled={loadingDetails}
+                        disabled={loadingDetails || soldOut}
                         className="w-full bg-orange-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-orange-600/25 hover:bg-orange-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {loadingDetails ? t('product.loading') : t('product.addToCart')}
+                        {loadingDetails ? t('product.loading') : soldOut ? t('product.soldOut') : t('product.addToCart')}
                     </button>
                 </div>
 
