@@ -37,6 +37,7 @@ import {
     resolveLoyaltyErrorMessage,
 } from '@/lib/loyalty-errors';
 import { resolveApiErrorMessage } from '@/lib/api-errors';
+import { isStockErrorCode } from '@/lib/stock-errors';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 
@@ -666,6 +667,16 @@ export default function CheckoutView() {
                 setScheduledFor(null);
                 setSlotRefreshKey((key) => key + 1);
                 toast.error(t('checkout.toast.staleSlot'));
+                return;
+            }
+
+            // Stock ran out after it went into the cart. The cart is kept; the
+            // customer lowers the quantity or removes the item.
+            if (isStockErrorCode(errorCode)) {
+                toast.error(resolveApiErrorMessage(error, t('checkout.toast.failedOrder')), {
+                    description: t('cart.toast.stockAdjustHint'),
+                });
+                await refreshSingleCart(selectedCartId);
                 return;
             }
 

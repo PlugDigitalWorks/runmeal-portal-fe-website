@@ -19,6 +19,11 @@ export interface Product {
   image?: string | null;
   imageUrl?: string | null;
   isActive: boolean;
+  /**
+   * Branch reads only (branch menu, products with `x-branch-id`): listed but
+   * cannot be ordered. The brand-wide menu never sends it.
+   */
+  isSoldOut?: boolean;
   addonIds?: string[] | null;
   addons?: ProductAddon[];
   options?: ProductOption[]; // Legacy

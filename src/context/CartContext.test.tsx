@@ -31,7 +31,10 @@ const stable = vi.hoisted(() => ({
   refreshAddresses: async () => {},
   selectedBranch: { id: 'branch-1' },
   translation: { t: (key: string) => key },
+  router: { refresh: vi.fn() },
 }));
+
+vi.mock('next/navigation', () => ({ useRouter: () => stable.router }));
 
 vi.mock('@/context/UserContext', () => ({
   useUser: () => ({
@@ -125,6 +128,7 @@ function Harness() {
         remove-coupon
       </button>
       <button onClick={() => updateQuantity('item-1', 1)}>set-qty-1</button>
+      <button onClick={() => updateQuantity('item-1', 5)}>set-qty-5</button>
     </div>
   );
 }
@@ -340,5 +344,22 @@ describe('CartContext promotions', () => {
 
     await waitFor(() => expect(screen.getByTestId('final')).toHaveTextContent('135'));
     expect(screen.getByTestId('applied')).toHaveTextContent('');
+  });
+
+  it('keeps the cart and refreshes the menu when raising a quantity runs out of stock', async () => {
+    serverCart = buildCart();
+    await renderHarness();
+    stable.router.refresh.mockClear();
+    mockedCartService.setQty.mockRejectedValue({
+      response: { status: 409, data: { code: 'PRODUCT_SOLD_OUT', statusCode: 409, data: { productName: 'Burger' } } },
+    });
+
+    fireEvent.click(screen.getByText('set-qty-5'));
+
+    await waitFor(() => expect(stable.router.refresh).toHaveBeenCalledTimes(1));
+    const { toast } = await import('sonner');
+    expect(toast.error).toHaveBeenCalled();
+    // Nothing was dropped: the cart still holds the two burgers.
+    expect(screen.getByTestId('total')).toHaveTextContent('270');
   });
 });

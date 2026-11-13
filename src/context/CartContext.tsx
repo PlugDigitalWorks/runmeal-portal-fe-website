@@ -21,7 +21,9 @@ import {
   isCartStaleLoyaltyError,
   resolveLoyaltyErrorMessage,
 } from '@/lib/loyalty-errors';
-import { resolveApiErrorMessage } from '@/lib/api-errors';
+import { getApiErrorCode, resolveApiErrorMessage } from '@/lib/api-errors';
+import { isStockError } from '@/lib/stock-errors';
+import { useRouter } from 'next/navigation';
 
 type CartOptionInput = {
   groupId?: string;
@@ -115,6 +117,10 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
+  const router = useRouter();
+  // The branch menu is read on the server; refreshing re-reads it, so a
+  // stock error leaves the page showing what is sold out now.
+  const refreshMenu = useCallback(() => router.refresh(), [router]);
   const { user, refreshAddresses } = useUser();
   const { selectedBranch } = useBranch();
   const [cart, setCart] = useState<Cart | null>(null);
@@ -425,7 +431,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         await refreshCarts();
       } catch (e: unknown) {
         console.error("Add to cart failed", e);
-        toast.error(resolveApiErrorMessage(e, t('cart.toast.addFailed')));
+        // Some is left but the cart already holds part of it: say how to go on.
+        toast.error(resolveApiErrorMessage(e, t('cart.toast.addFailed')),
+          getApiErrorCode(e) === 'PRODUCT_QUANTITY_UNAVAILABLE'
+            ? { description: t('cart.toast.stockAdjustHint') }
+            : undefined);
+        if (isStockError(e)) refreshMenu();
       } finally {
         setIsLoading(false);
       }
@@ -573,7 +584,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         await refreshCarts();
       } catch (e) {
         console.error("Update qty failed", e);
-        toast.error(t('cart.toast.updateFailed'));
+        toast.error(resolveApiErrorMessage(e, t('cart.toast.updateFailed')));
+        // Only raising can be refused for stock; the cart keeps the quantity
+        // the backend still has and the menu shows what ran out.
+        if (isStockError(e)) {
+          refreshMenu();
+          await refreshCarts().catch(() => undefined);
+        }
       } finally {
         setIsLoading(false);
       }

@@ -161,6 +161,8 @@
     "POS_PROVIDER_REJECTED": "POS sağlayıcısı bu isteği reddetti.",
     "POS_PROVIDER_REQUEST_FAILED": "POS sağlayıcısı bu isteği tamamlayamadı.",
     "PRODUCT_NOT_FOUND": "Ürün bulunamadı.",
+    "PRODUCT_QUANTITY_UNAVAILABLE": "Bu sipariş için yeterli {{productName}} kalmadı.",
+    "PRODUCT_SOLD_OUT": "{{productName}} tükendi.",
     "SPLIT_PART_ALREADY_PAID": "Bu parça zaten ödendi.",
     "SPLIT_PART_AMOUNT_TOO_SMALL": "Her ödeme parçası en az 0,01 olmalı.",
     "SPLIT_PART_NOT_FOUND": "Ödeme parçası bulunamadı.",
@@ -435,7 +437,8 @@
     "productNotePlaceholder": "Az acılı, soğansız...",
     "totalAmount": "Toplam Tutar",
     "loading": "Yükleniyor...",
-    "addToCart": "Sepete Ekle"
+    "addToCart": "Sepete Ekle",
+    "soldOut": "Tükendi"
   },
   "cart": {
     "myCart": "Sepetim",
@@ -460,6 +463,7 @@
       "addFailed": "Ürün sepete eklenemedi",
       "removeFailed": "Ürün kaldırılamadı",
       "updateFailed": "Adet güncellenemedi",
+      "stockAdjustHint": "Devam etmek için adedi azaltın veya ürünü sepetten çıkarın.",
       "cleared": "Sepet temizlendi",
       "clearFailed": "Sepet temizlenemedi"
     },
